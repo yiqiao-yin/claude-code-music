@@ -43,7 +43,8 @@ template/
 ├── moody_drums_bundle/          A minor, 68 BPM, 16 bars. The original.
 ├── optimistic_drums_bundle/     G → C, 104 BPM, 24 bars. The clean baseline.
 ├── morning_forest_bundle/       C → D → C → E → C, 112 BPM, 40 bars.
-└── simple_bach_tune/            C major, 72 BPM, 16 bars. Baroque, 16th notes.
+├── simple_bach_tune/            C major, 72 BPM, 16 bars. Baroque, 16th notes.
+└── avenger_beginning_song/      E minor, 88 BPM, 32 bars. Heroic fanfare.
 ```
 
 Every bundle has the same shape:
@@ -63,8 +64,10 @@ Which to copy when building a new one:
   in-script MP3, `structure.json` handoff, single FFT pass. Default choice.
 - **`morning_forest_bundle`** — copy this if the piece has more than two
   sections, an arpeggio, or non-default synth voices.
-- **`simple_bach_tune`** — copy this for anything on a 16th-note grid, and for
-  its `viol` voice, which is the only correct vibrato in the repo.
+- **`simple_bach_tune`** — copy this for anything on a 16th-note grid.
+- **`avenger_beginning_song`** — copy this for brass or orchestral percussion, or
+  when the visualizer should draw the score itself; it is the only bundle that
+  exports every note into `structure.json`.
 - **`moody_drums_bundle`** — the original. Paths and ffmpeg are now handled like
   the others, but it still has no `structure.json`, so its script 02 hard-codes
   its own caption. Prefer one of the three above.
@@ -108,9 +111,14 @@ hard-code an absolute output path.
   `sin(2*pi * freq * vib * t)`. The latter modulates phase, and the pitch error
   grows with note length — an intended ±7 cents measured −719/+490 cents on a 3 s
   note. Fixed in all four bundles; don't reintroduce it.
-- **The chroma check misreads bright timbres.** The fifth harmonic of a note is a
-  major third two octaves up, so rich voices put unplayed pitch classes into the
-  analysis. Narrow to ~70–1200 Hz and check per bar before believing a failure.
+- **The chroma check misreads bright timbres and swept percussion.** The fifth
+  harmonic of a note is a major third two octaves up and the seventh is a minor
+  seventh, so rich voices put unplayed pitch classes into the analysis; pitch-swept
+  or inharmonic drums do the same. Narrow to ~70–1200 Hz, check per bar, and
+  re-render without percussion before believing a failure.
+- **The 5× onset rule assumes the kick is alone in 40–120 Hz.** If the bass parts
+  sit in that band too, count every low note attack in the denominator, not just
+  the kicks.
 - **A melody that transposes with its section** must be checked against every
   section's chords, including any untransposed pivot chords.
 - After building a bundle, **send the user the `.mp4`**. They asked for a music

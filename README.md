@@ -17,6 +17,7 @@ You describe a mood in a sentence; the result is a finished music video.
 | [`optimistic_drums_bundle`](template/optimistic_drums_bundle/) | G → C | 104 BPM | 24 bars, 59.4 s | Uplift. One key change at bar 17, warm sunrise palette. |
 | [`morning_forest_bundle`](template/morning_forest_bundle/) | C → D → C → E → C | 112 BPM | 40 bars, 89.7 s | Crisp and hopeful. A harmonic arch, arpeggio, god-rays. |
 | [`simple_bach_tune`](template/simple_bach_tune/) | C major | 72 BPM | 16 bars, 57.3 s | Baroque. The Prelude in C figure in 16ths, harpsichord, all white keys. |
+| [`avenger_beginning_song`](template/avenger_beginning_song/) | E minor | 88 BPM | 32 bars, 91.3 s | Heroic fanfare. Power chords, brass, orchestral percussion, no kit. |
 
 ### `moody_drums_bundle`
 
@@ -70,6 +71,23 @@ bar lit, plus a live chord readout.
 Its folder is `simple_bach_tune`, not `..._bundle`, because that is the name that
 was asked for.
 
+### `avenger_beginning_song`
+
+A heroic fanfare in E minor, built from a two-handed keyboard layout supplied note
+by note: left hand on power chords with no third (E+B, D+A, C+G), right hand on
+triads with the melody on top. One chord per bar at 88 BPM, each hit heavily
+accented and left to ring into silence. The written material is stated, restated
+with a sub-octave under every chord, then resolved by a four-bar descending run.
+
+Voiced for additive brass with a pitch scoop and breath transient, a darker low
+brass with a sine sub, and a horn doubling the melody. Percussion is orchestral
+only — pitched timpani tuned to each left-hand root, taiko on the downbeats, and
+cymbal swells that land on each section change. No drum kit and no backbeat.
+
+The visualizer draws a scrolling piano roll of the actual score with the two hands
+in different colours, over a palette that warms from steel to gold at the
+restatement.
+
 ## Making a new one
 
 Point Claude Code at [`template/instructions.md`](template/instructions.md) and
@@ -115,6 +133,7 @@ render per second of music for the video.
     ├── moody_drums_bundle/
     ├── optimistic_drums_bundle/
     ├── simple_bach_tune/
+    ├── avenger_beginning_song/
     └── morning_forest_bundle/
         ├── README.md               full recipe, detailed enough to rebuild from alone
         ├── structure.json          bar/section map, script 01 → script 02

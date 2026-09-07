@@ -695,6 +695,14 @@ because D was prominent. If the top band looks wrong, **narrow the analysis to
 roughly 70–1200 Hz where fundamentals dominate** and check again before believing
 it.
 
+*So does swept and inharmonic percussion.* A pitch-sweeping kick or taiko smears
+energy across every bin it passes through, and drums with deliberately inharmonic
+partials — a timpani's 2.1× mode, say — land wherever they land.
+`avenger_beginning_song` reported an A♯ that no part plays; re-rendering the
+section with the percussion muted removed it entirely. **When a stray pitch class
+survives the band narrowing, render once without percussion before concluding the
+notes are wrong.**
+
 *Analyse per bar when a phrase-level result is ambiguous.* Comparing each bar's
 top three pitch classes against that bar's chord is far more decisive than a
 ten-second window, and it localises the problem:
@@ -724,9 +732,18 @@ frame; the caption is legible; the spectrum ring reads against the background; i
 there's a structural event, extract a frame at that timestamp and confirm it's
 visible.
 
-Also sanity-check the printed onset count against the notated kick count
-(`kicks_per_bar * drum_bars`). Detected will exceed notated — snares and hats leak
-into the low band — but 5× notated means the threshold is too low.
+Also sanity-check the printed onset count. The denominator is **every attack the
+piece puts in the 40–120 Hz detection band**, not just the kicks:
+
+```
+low-band attacks = percussion hits + note attacks below about MIDI 60
+```
+
+Detected will exceed that — snares and hats leak downward — but more than about
+3× means the threshold is too low. Counting kicks alone is only right when the
+kick is the sole occupant of that band. `avenger_beginning_song`, whose left hand
+is power chords at E1 and A1, measured 8.9× against kicks and 1.6× against the
+honest denominator, and nothing was wrong with it.
 
 ### 5.4 Reproducibility
 
@@ -830,27 +847,25 @@ scripts should be able to rebuild the piece from the README alone.**
 
 ## 8. Reference: what exists so far
 
-| | `moody_drums_bundle` | `optimistic_drums_bundle` | `morning_forest_bundle` | `simple_bach_tune` |
-|---|---|---|---|---|
-| Key | A minor | G → C at bar 17 | C→D→C→E→C | C major throughout |
-| Tempo | 68 BPM | 104 BPM | 112 BPM | 72 BPM |
-| Form | 16 bars, 60.5 s | 24 bars, 59.4 s | 40 bars, 89.7 s | 16 bars, 57.3 s |
-| Note grid | 8ths | 8ths | 8ths | **16ths** |
-| Main voice | additive pad | additive pad | Karplus-Strong arp | additive harpsichord |
-| Lead | sine + 3rd harmonic | sine + 3rd harmonic | FM bell + sine core | held bowed upper voice |
-| Bass | sine + 2nd harmonic | sine + 2nd harmonic | tanh-saturated | 6-harmonic bowed, held |
-| Drums | half-time, bar 3 | backbeat + push | shaker/kick/rim/brush | shaker/kick/rim, staged |
-| Reverb | 97–389 ms, lp 3500 | 61–211 ms, lp 4500 | 53–181 ms, lp 6000 | 89–331 ms, lp 4000 |
-| Palette | indigo / violet | dusk gold / teal | forest green / gold | candlelit slate / gold |
-| Extra scene element | — | — | god-rays | 16-bar tick ring, chord readout |
-| Structural events | 0 | 1 | 4 | 3 phrase marks |
-| Accidentals | — | F♯, G♯ | F♯, G♯ | none, all white keys |
-| Paths | script-relative ✅ | script-relative ✅ | script-relative ✅ | script-relative ✅ |
-| Vibrato bug (§7) | fixed ✅ | fixed ✅ | n/a (no vibrato) | fixed ✅ |
+| | `moody_drums_bundle` | `optimistic_drums_bundle` | `morning_forest_bundle` | `simple_bach_tune` | `avenger_beginning_song` |
+|---|---|---|---|---|---|
+| Key | A minor | G → C at bar 17 | C→D→C→E→C | C major | E minor (+D♯) |
+| Tempo | 68 BPM | 104 BPM | 112 BPM | 72 BPM | 88 BPM |
+| Form | 16 bars, 60.5 s | 24 bars, 59.4 s | 40 bars, 89.7 s | 16 bars, 57.3 s | 32 bars, 91.3 s |
+| Texture | sustained pad | sustained pad | 8th arpeggio | 16th figure | block hits + silence |
+| Main voice | additive pad | additive pad | Karplus-Strong | harpsichord | scooped brass |
+| Lead | sine + 3rd | sine + 3rd | FM bell | bowed upper voice | horn doubling |
+| Bass | sine + 2nd | sine + 2nd | tanh-saturated | bowed, held | 8-harm + sine sub |
+| Drums | half-time kit | backbeat kit | shaker kit | shaker/kick/rim | timpani/taiko/cymbal, **no kit** |
+| Reverb | 97–389, lp 3500 | 61–211, lp 4500 | 53–181, lp 6000 | 89–331, lp 4000 | 113–421, lp 3200 |
+| RMS | 0.175 | 0.176 | 0.145 | 0.205 | 0.132 |
+| Palette | indigo/violet | dusk gold/teal | forest green/gold | candlelit slate | steel → gold |
+| Extra scene element | — | — | god-rays | bar tick ring | scrolling two-hand score |
+| Structural events | 0 | 1 | 4 | 3 | 6 |
 
-Folder naming: the first three are `<name>_bundle`; `simple_bach_tune` is not,
-because that was the folder name requested. Follow whatever the user asks for.
+Folder naming: the first three are `<name>_bundle`, the last two are not, because
+those were the folder names requested. Follow whatever the user asks for.
 
-A fifth bundle should differ from **all four** — the axes still untouched are
+A sixth bundle should differ from **all five** — the axes still untouched are
 meter (everything so far is 4/4), a drumless piece, a genuinely modal colour
-(nothing yet uses Dorian, Phrygian, Lydian or harmonic minor), swing, and stereo.
+(nothing yet uses Dorian, Phrygian, Lydian or Mixolydian), swing, and stereo.
