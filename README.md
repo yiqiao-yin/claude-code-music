@@ -14,7 +14,8 @@ No AI audio or video models involved; every note and every frame comes from code
 └── template/
     ├── instructions.md     # how to build a new bundle — read this first
     ├── moody_drums_bundle/
-    └── optimistic_drums_bundle/
+    ├── optimistic_drums_bundle/
+    └── morning_forest_bundle/
         ├── README.md      # full recipe to regenerate the track from scratch
         ├── structure.json # bar/section map, handed from script 01 to script 02
         ├── scripts/
@@ -62,6 +63,25 @@ python3 02_make_video.py       # -> ../assets/optimistic_drums_visualizer.mp4
 ```
 
 No path editing needed; ffmpeg is located automatically.
+
+### `morning_forest_bundle`
+
+40 bars at 112 BPM. The harmony arches **C → D → C → E → C** across five 8-bar
+sections, each modulation prepared by the dominant of the key it enters. Built
+from the brief *"happy and clear and full of hope… crisp and clean, like walking
+into a forest in the morning."*
+
+Crispness comes from an 8th-note Karplus-Strong arpeggio in place of a sustained
+pad, an FM-bell lead, and the brightest reverb of the three bundles. The kit is
+shaker, soft kick, rim and brush — no ordinary snare. The visualizer inverts the
+gradient (light above, understory below), adds precomputed god-rays, and
+brightens the whole scene in step with the arch.
+
+```bash
+cd template/morning_forest_bundle/scripts
+python3 01_make_music.py       # -> ../assets/{mid,wav,mp3}, ../structure.json
+python3 02_make_video.py       # -> ../assets/morning_forest_visualizer.mp4
+```
 
 ## Adding a template
 

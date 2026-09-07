@@ -643,19 +643,24 @@ scripts should be able to rebuild the piece from the README alone.**
 
 ## 8. Reference: what exists so far
 
-| | `moody_drums_bundle` | `optimistic_drums_bundle` |
-|---|---|---|
-| Key | A minor | G major → C major at bar 17 |
-| Tempo | 68 BPM | 104 BPM |
-| Form | 8-bar cycle × 2 = 16 bars, 60.5 s | 8-bar cycle × 3 = 24 bars, 59.4 s |
-| Melody | descending, long notes | rising cells, short notes |
-| Drums | half-time, from bar 3 | backbeat + push, open-hat section marks |
-| Pad | attack 0.9 s, lowpass 1400 Hz | attack 0.5 s, lowpass 2200 Hz |
-| Reverb | 97/151/233/389 ms, lp 3500 | 61/89/127/211 ms, lp 4500 |
-| Palette | deep indigo, violet orb, lavender ring | warm dusk→gold, amber orb, teal ring |
-| Structural trick | none | palette lift + bloom ring at the modulation |
-| Paths | hard-coded `/mnt/user-data/outputs/` | script-relative ✅ |
-| MP3 step | manual shell command | in-script ✅ |
+| | `moody_drums_bundle` | `optimistic_drums_bundle` | `morning_forest_bundle` |
+|---|---|---|---|
+| Key | A minor | G major → C major at bar 17 | C → D → C → E → C |
+| Tempo | 68 BPM | 104 BPM | 112 BPM |
+| Form | 8-bar × 2 = 16 bars, 60.5 s | 8-bar × 3 = 24 bars, 59.4 s | 8-bar × 5 = 40 bars, 89.7 s |
+| Melody | descending, long notes | rising cells, short notes | rising, rests the last bar of each section |
+| Foreground | sustained pad | sustained pad | 8th-note Karplus-Strong arpeggio |
+| Lead voice | sine + 3rd harmonic | sine + 3rd harmonic | FM bell + sine core |
+| Pad | attack 0.9 s, lp 1400 Hz | attack 0.5 s, lp 2200 Hz | filter opens 500 → 3200 Hz |
+| Bass | sine + 2nd harmonic | sine + 2nd harmonic | tanh-saturated |
+| Drums | half-time, from bar 3 | backbeat + push, open-hat marks | shaker/kick/rim/brush, staged entry |
+| Reverb | 97/151/233/389 ms, lp 3500 | 61/89/127/211 ms, lp 4500 | 53/79/113/181 ms, lp 6000 |
+| Palette | indigo, violet orb, lavender ring | dusk→gold, amber orb, teal ring | forest green, gold sun, green ring |
+| Gradient | brightens downward | brightens downward | brightens **upward** |
+| Structural events | 0 | 1 | 4 |
+| Paths | hard-coded `/mnt/user-data/outputs/` | script-relative ✅ | script-relative ✅ |
+| MP3 step | manual shell command | in-script ✅ | in-script ✅ |
 
-A third bundle should differ from **both** of these — ideally in mode, meter,
-lead voice and drum feel at once, not just in key.
+A fourth bundle should differ from **all three** — the axes still untouched are
+meter (everything so far is 4/4), a drumless piece, a genuinely modal colour
+(nothing yet uses Dorian, Phrygian, Lydian or harmonic minor), swing, and stereo.

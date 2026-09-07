@@ -1,0 +1,30 @@
+{
+  "bpm": 112,
+  "bars": 40,
+  "beats_per_bar": 4,
+  "duration_sec": 89.71428571428571,
+  "section_starts_sec": [
+    0.0,
+    17.142857142857142,
+    34.285714285714285,
+    51.42857142857143,
+    68.57142857142857
+  ],
+  "section_transpose": [
+    0,
+    2,
+    0,
+    4,
+    0
+  ],
+  "section_keys": [
+    "C major",
+    "D major",
+    "C major",
+    "E major",
+    "C major"
+  ],
+  "modulation_sec": null,
+  "peak_sec": 51.42857142857143,
+  "title": "morning forest  |  C major, arch to E and back, 112 BPM"
+}
