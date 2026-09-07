@@ -16,6 +16,7 @@ You describe a mood in a sentence; the result is a finished music video.
 | [`moody_drums_bundle`](template/moody_drums_bundle/) | A minor | 68 BPM | 16 bars, 60.5 s | Brooding. Half-time kit, descending melody, cathedral reverb. |
 | [`optimistic_drums_bundle`](template/optimistic_drums_bundle/) | G → C | 104 BPM | 24 bars, 59.4 s | Uplift. One key change at bar 17, warm sunrise palette. |
 | [`morning_forest_bundle`](template/morning_forest_bundle/) | C → D → C → E → C | 112 BPM | 40 bars, 89.7 s | Crisp and hopeful. A harmonic arch, arpeggio, god-rays. |
+| [`simple_bach_tune`](template/simple_bach_tune/) | C major | 72 BPM | 16 bars, 57.3 s | Baroque. The Prelude in C figure in 16ths, harpsichord, all white keys. |
 
 ### `moody_drums_bundle`
 
@@ -50,6 +51,23 @@ an FM-bell lead over a sine core, and the brightest, shortest reverb of the thre
 The kit is shaker, soft kick, rim and brush — no ordinary snare. The visualizer
 inverts the gradient (light above, understory below), adds precomputed god-rays,
 and brightens the whole scene in step with the arch.
+
+### `simple_bach_tune`
+
+The opening figure of Bach's Prelude in C, BWV 846 — a five-note broken chord per
+bar, played twice a bar in 16th notes — over sixteen bars that open with
+`C Dm G/B C` and then walk home through three descending-fifths chains. Not a note
+outside C major: the whole piece is white keys.
+
+A twelve-harmonic additive harpsichord with a noise quill carries the figure, over
+a held bowed continuo, with an upper voice entering at bar 5 that descends by step
+and climbs home. The drums are a light pulse staged in behind the counterpoint —
+shaker from bar 3, soft kick and rim from bar 5. The visualizer runs a candlelit
+palette and draws the sixteen-bar structure as a ring of ticks with the current
+bar lit, plus a live chord readout.
+
+Its folder is `simple_bach_tune`, not `..._bundle`, because that is the name that
+was asked for.
 
 ## Making a new one
 
@@ -95,6 +113,7 @@ render per second of music for the video.
     ├── instructions.md             the spec for building a new bundle
     ├── moody_drums_bundle/
     ├── optimistic_drums_bundle/
+    ├── simple_bach_tune/
     └── morning_forest_bundle/
         ├── README.md               full recipe, detailed enough to rebuild from alone
         ├── structure.json          bar/section map, script 01 → script 02

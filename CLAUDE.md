@@ -42,7 +42,8 @@ template/
 ├── instructions.md              the spec — read this first
 ├── moody_drums_bundle/          A minor, 68 BPM, 16 bars. The original.
 ├── optimistic_drums_bundle/     G → C, 104 BPM, 24 bars. The clean baseline.
-└── morning_forest_bundle/       C → D → C → E → C, 112 BPM, 40 bars.
+├── morning_forest_bundle/       C → D → C → E → C, 112 BPM, 40 bars.
+└── simple_bach_tune/            C major, 72 BPM, 16 bars. Baroque, 16th notes.
 ```
 
 Every bundle has the same shape:
@@ -62,8 +63,11 @@ Which to copy when building a new one:
   in-script MP3, `structure.json` handoff, single FFT pass. Default choice.
 - **`morning_forest_bundle`** — copy this if the piece has more than two
   sections, an arpeggio, or non-default synth voices.
+- **`simple_bach_tune`** — copy this for anything on a 16th-note grid, and for
+  its `viol` voice, which is the only correct vibrato in the repo.
 - **`moody_drums_bundle`** — the original, still has hard-coded
-  `/mnt/user-data/outputs/` paths. Reference only; don't copy its path handling.
+  `/mnt/user-data/outputs/` paths, and its `lead_voice` carries the vibrato bug
+  below. Reference only; don't copy its path handling or its vibrato.
 
 ## Environment
 
@@ -100,6 +104,14 @@ hard-code an absolute output path.
   when one track carries two simultaneous parts.
 - **Seeded RNG everywhere** — `default_rng(3)` for audio noise, `default_rng(7)`
   for video particles. Never unseeded.
+- **Vibrato must integrate frequency to phase** with `np.cumsum`, never
+  `sin(2*pi * freq * vib * t)`. The latter modulates phase, and the pitch error
+  grows with note length — measured at 23.6 semitones of swing on a 3 s note in
+  `moody_drums_bundle`, which intends ±7 cents. `moody_drums_bundle` and
+  `optimistic_drums_bundle` still ship the broken form.
+- **The chroma check misreads bright timbres.** The fifth harmonic of a note is a
+  major third two octaves up, so rich voices put unplayed pitch classes into the
+  analysis. Narrow to ~70–1200 Hz and check per bar before believing a failure.
 - **A melody that transposes with its section** must be checked against every
   section's chords, including any untransposed pivot chords.
 - After building a bundle, **send the user the `.mp4`**. They asked for a music

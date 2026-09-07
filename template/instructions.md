@@ -679,9 +679,34 @@ Read the output against three rules:
   leans on its dominant will put the fifth on top.
 - **Every pitch class in the top five is diatonic to that section's key.** This is
   the rule that actually catches bugs. An F♯ in a C major section means a
-  transposition went somewhere it shouldn't.
+  transposition went somewhere it shouldn't — *unless* the piece uses a
+  harmonically rich voice, in which case see the caveat below.
 - **If the piece modulates, the sections differ.** Identical chroma across a
   claimed key change means the transposition never happened.
+
+**Two caveats, both learned the hard way on `simple_bach_tune`.**
+
+*Bright timbres put notes in the chroma that were never played.* The fifth
+harmonic of any pitch is a major third two octaves up, and the seventh is a minor
+seventh; a voice with a slow harmonic rolloff therefore shows the major third of
+whatever it plays. A piece that is entirely white keys reported an F♯, purely
+because D was prominent. If the top band looks wrong, **narrow the analysis to
+roughly 70–1200 Hz where fundamentals dominate** and check again before believing
+it.
+
+*Analyse per bar when a phrase-level result is ambiguous.* Comparing each bar's
+top three pitch classes against that bar's chord is far more decisive than a
+ten-second window, and it localises the problem:
+
+```python
+seg = a[int((b*bar_sec + 0.25)*sr):int(((b+1)*bar_sec - 0.15)*sr)]
+# ... chroma over 70-1200 Hz, then compare top-3 against the bar's chord tones
+```
+
+That is what found the vibrato bug in §7 — bars 1–4 were clean and bars 5–16 were
+not, which pointed straight at the voice that enters at bar 5. When a check
+flags something, **render A/B variants with one part muted at a time** rather than
+guessing which part is at fault.
 
 ### 5.3 Video
 
@@ -748,6 +773,21 @@ scripts should be able to rebuild the piece from the README alone.**
 
 ## 7. Pitfalls, learned the hard way
 
+- **Vibrato must integrate frequency to phase.** Writing
+  `sin(2*pi * freq * vib * t)` where `vib` varies with `t` modulates *phase*, not
+  frequency: the instantaneous frequency picks up a `t * dvib/dt` term that grows
+  linearly, so the longer the note the further it wanders. Measured on
+  `moody_drums_bundle`'s shipped `lead_voice`, which has this form: an intended
+  ±7 cents becomes **14.4 semitones of swing on a 1 s note and 23.6 on a 3 s
+  note.** Always accumulate instead:
+
+  ```python
+  phase = 2 * np.pi * np.cumsum(freq * h * vib) / SR
+  sig += np.sin(phase) / h ** 1.1
+  ```
+
+  `moody_drums_bundle` and `optimistic_drums_bundle` still carry the broken form.
+  Do not copy their `lead_voice`; copy `simple_bach_tune`'s `viol`.
 - **midiutil cannot serialize two overlapping notes of the same pitch on the same
   channel.** `writeFile` dies with `IndexError: pop from empty list` inside
   `deInterleaveNotes`, and the traceback points at midiutil, not at your music.
@@ -786,24 +826,27 @@ scripts should be able to rebuild the piece from the README alone.**
 
 ## 8. Reference: what exists so far
 
-| | `moody_drums_bundle` | `optimistic_drums_bundle` | `morning_forest_bundle` |
-|---|---|---|---|
-| Key | A minor | G major → C major at bar 17 | C → D → C → E → C |
-| Tempo | 68 BPM | 104 BPM | 112 BPM |
-| Form | 8-bar × 2 = 16 bars, 60.5 s | 8-bar × 3 = 24 bars, 59.4 s | 8-bar × 5 = 40 bars, 89.7 s |
-| Melody | descending, long notes | rising cells, short notes | rising, rests the last bar of each section |
-| Foreground | sustained pad | sustained pad | 8th-note Karplus-Strong arpeggio |
-| Lead voice | sine + 3rd harmonic | sine + 3rd harmonic | FM bell + sine core |
-| Pad | attack 0.9 s, lp 1400 Hz | attack 0.5 s, lp 2200 Hz | filter opens 500 → 3200 Hz |
-| Bass | sine + 2nd harmonic | sine + 2nd harmonic | tanh-saturated |
-| Drums | half-time, from bar 3 | backbeat + push, open-hat marks | shaker/kick/rim/brush, staged entry |
-| Reverb | 97/151/233/389 ms, lp 3500 | 61/89/127/211 ms, lp 4500 | 53/79/113/181 ms, lp 6000 |
-| Palette | indigo, violet orb, lavender ring | dusk→gold, amber orb, teal ring | forest green, gold sun, green ring |
-| Gradient | brightens downward | brightens downward | brightens **upward** |
-| Structural events | 0 | 1 | 4 |
-| Paths | hard-coded `/mnt/user-data/outputs/` | script-relative ✅ | script-relative ✅ |
-| MP3 step | manual shell command | in-script ✅ | in-script ✅ |
+| | `moody_drums_bundle` | `optimistic_drums_bundle` | `morning_forest_bundle` | `simple_bach_tune` |
+|---|---|---|---|---|
+| Key | A minor | G → C at bar 17 | C→D→C→E→C | C major throughout |
+| Tempo | 68 BPM | 104 BPM | 112 BPM | 72 BPM |
+| Form | 16 bars, 60.5 s | 24 bars, 59.4 s | 40 bars, 89.7 s | 16 bars, 57.3 s |
+| Note grid | 8ths | 8ths | 8ths | **16ths** |
+| Main voice | additive pad | additive pad | Karplus-Strong arp | additive harpsichord |
+| Lead | sine + 3rd harmonic | sine + 3rd harmonic | FM bell + sine core | held bowed upper voice |
+| Bass | sine + 2nd harmonic | sine + 2nd harmonic | tanh-saturated | 6-harmonic bowed, held |
+| Drums | half-time, bar 3 | backbeat + push | shaker/kick/rim/brush | shaker/kick/rim, staged |
+| Reverb | 97–389 ms, lp 3500 | 61–211 ms, lp 4500 | 53–181 ms, lp 6000 | 89–331 ms, lp 4000 |
+| Palette | indigo / violet | dusk gold / teal | forest green / gold | candlelit slate / gold |
+| Extra scene element | — | — | god-rays | 16-bar tick ring, chord readout |
+| Structural events | 0 | 1 | 4 | 3 phrase marks |
+| Accidentals | — | F♯, G♯ | F♯, G♯ | none, all white keys |
+| Paths | hard-coded | script-relative ✅ | script-relative ✅ | script-relative ✅ |
+| Vibrato bug (§7) | **present** | **present** | n/a (no vibrato) | fixed ✅ |
 
-A fourth bundle should differ from **all three** — the axes still untouched are
+Folder naming: the first three are `<name>_bundle`; `simple_bach_tune` is not,
+because that was the folder name requested. Follow whatever the user asks for.
+
+A fifth bundle should differ from **all four** — the axes still untouched are
 meter (everything so far is 4/4), a drumless piece, a genuinely modal colour
 (nothing yet uses Dorian, Phrygian, Lydian or harmonic minor), swing, and stereo.

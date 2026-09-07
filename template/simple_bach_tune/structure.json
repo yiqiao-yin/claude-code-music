@@ -1,0 +1,40 @@
+{
+  "bpm": 72,
+  "bars": 16,
+  "beats_per_bar": 4,
+  "duration_sec": 57.333333333333336,
+  "section_starts_sec": [
+    0.0,
+    13.333333333333334,
+    26.666666666666668,
+    40.0
+  ],
+  "section_keys": [
+    "C major",
+    "C major",
+    "C major",
+    "C major"
+  ],
+  "chords": [
+    "C",
+    "Dm",
+    "G/B",
+    "C",
+    "Am",
+    "Dm",
+    "G",
+    "C",
+    "F",
+    "Bdim",
+    "Em",
+    "Am",
+    "Dm",
+    "G7",
+    "C",
+    "C"
+  ],
+  "bar_sec": 3.3333333333333335,
+  "drums_in_sec": 13.333333333333334,
+  "modulation_sec": null,
+  "title": "simple bach tune  |  C major, 72 BPM"
+}
