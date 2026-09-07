@@ -1,0 +1,13 @@
+{
+  "bpm": 104,
+  "bars": 24,
+  "beats_per_bar": 4,
+  "duration_sec": 59.38461538461538,
+  "section_starts_sec": [
+    0.0,
+    18.46153846153846,
+    36.92307692307692
+  ],
+  "modulation_sec": 36.92307692307692,
+  "title": "optimistic (with drums)  |  G major -> C major, 104 BPM"
+}
