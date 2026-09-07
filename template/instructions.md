@@ -10,15 +10,34 @@ same asset set, same pipeline (notes → code → audio → analysis → frames 
 The *music* should change a lot. Section 3 is the menu of things to change;
 section 2 is the list of things not to.
 
-**To use it:** point Claude Code at this file and say what you want. Claude asks
-you the questions in section 1, fills the gaps with defaults, builds the bundle,
-verifies it with section 5, and reports back.
+**To use it:** point Claude Code at this file and say what you want — even just
+"create a new music video." Claude asks you the three questions in §1.1, fills
+every other gap with a default, builds the bundle, verifies it against §5, and
+reports back.
 
-> Claude: ask the section-1 questions in **one batch**, at most six of them, and
-> only the ones the request left genuinely open. Do not ask about anything that
-> has a default in section 3 unless the answer would change the whole piece.
-> State your assumptions in your first reply, then build the whole thing without
-> stopping. Do not ship a bundle that has not passed section 5.
+> **Claude — read this before doing anything else.**
+>
+> When someone asks for a new music video, a new bundle, or another track, and
+> has not already answered the three questions in §1.1: **stop and ask them.**
+> Ask all of the unanswered ones in a single batch, never one at a time. Offer
+> the concrete options listed under each question rather than an open prompt —
+> most people cannot answer "what mode do you want?" cold, but they can pick from
+> a list, and they will happily correct a suggestion.
+>
+> Rules for that exchange:
+> - Ask **only** the §1.1 questions. Everything in §1.2 has a default; do not ask
+>   about it unless the answer would change the whole piece.
+> - Three questions is the target. Six is the absolute ceiling, and you should
+>   never need it.
+> - "You pick" is a valid answer to any of them. Take it, choose something that
+>   fits the mood, and say what you chose and why.
+> - If the request already contains the answers ("upbeat funk in E dorian, just
+>   loop it"), ask nothing and start building.
+>
+> Then: restate the full spec including every default you assumed, build the
+> whole bundle without stopping, and do not ship anything that has not passed
+> §5. If §5 fails, fix it and re-run §5 — do not report a bundle as working on
+> the strength of the code having executed.
 
 ---
 
@@ -26,23 +45,86 @@ verifies it with section 5, and reports back.
 
 ### 1.1 The three that matter
 
-Nothing sensible can be defaulted for these.
+Nothing sensible can be defaulted for these three. Everything else in §1.2 has a
+default, so in practice this is the whole interview.
 
-1. **Mood or genre, in your own words.** One sentence is plenty. "Nocturnal jazz,
-   smoky, brushes not sticks." "Driving and mechanical, like a train at night."
-   "Pastoral, sunrise over a field." This drives every other choice.
-2. **Key and mode** — or say "you pick" and I'll choose one that fits the mood.
-   Modes are the cheapest way to get a genuinely different colour: Dorian is not
-   minor, Lydian is not major. See §3.2.
-3. **Does the harmony go anywhere?** Static loop, one key change, a gradual
-   darkening, a false ending? The optimistic bundle's whole identity is the
-   G→C lift at bar 17. Say "just loop it" if you want a loop.
+---
+
+#### Question 1 — What mood or genre? One sentence in your own words.
+
+This cascades into every other choice: tempo, mode, drum pattern, synth voices,
+even the video palette. Be evocative rather than technical; "like rain on a bus
+window at night" tells me more than "melancholy."
+
+Examples that would each produce a very different bundle:
+
+| If you say | It would lead to |
+|---|---|
+| "Nocturnal jazz, smoky bar, brushes not sticks" | ~80 BPM, Dorian, brush snare, walking bass, dim amber palette |
+| "Driving and mechanical, like a train at night" | ~128 BPM, Phrygian, four-on-the-floor, sub bass, cold monochrome |
+| "Pastoral, sunrise over a field" | ~92 BPM, Lydian, no drums or very soft ones, plucked strings, warm greens |
+| "Anxious, something is about to go wrong" | ~110 BPM, harmonic minor, 7/8, rim clicks, near-black with red |
+| "Weightless, floating, half asleep" | ~64 BPM, Lydian, no drums, filter-sweep pads, soft rose |
+| "Triumphant, the end of a long climb" | ~118 BPM, Ionian, big backbeat, organ, gold |
+| "Playful and mischievous, a cartoon chase" | ~140 BPM, Mixolydian, breakbeat, FM bells, saturated primaries |
+| "Grief, but calm about it" | ~58 BPM, Aeolian, no drums until late, breathy lead, grey-blue |
+
+Or just describe a scene, a film, a time of day, a weather. Anything concrete.
+
+---
+
+#### Question 2 — What key and mode? Or say "you pick."
+
+**Mode matters far more than key.** Dorian, Lydian and Phrygian on the same root
+are three genuinely different pieces; C minor and D minor are the same piece
+shifted. If you only answer half of this, answer the mode half.
+
+| Mode | Sounds like | Try it for |
+|---|---|---|
+| **Ionian** (major) | bright, settled, resolved | triumph, warmth, children's-book optimism |
+| **Dorian** | minor but hopeful, cool, jazzy | jazz, funk, wistful-but-moving |
+| **Phrygian** | dark, Spanish, tense | menace, drive, unease |
+| **Lydian** | floating, wondrous, unresolved-upward | wonder, dreams, film scores |
+| **Mixolydian** | rootsy, warm, bluesy | folk, rock, the open road |
+| **Aeolian** (natural minor) | plainly sad | straightforward melancholy |
+| **Harmonic minor** | dramatic, ornate, Eastern | drama, ornament, gothic |
+
+Key mostly affects register and colour: lower keys (C, D, E♭) sit heavier and
+darker, higher ones (G, A, B♭) sit brighter and lighter. Pick one you like the
+sound of, or let me choose. (§3.2 has the same table with the chord moves that
+make each mode audible — that's the implementation side of this answer.)
+
+Valid answers: "D dorian" · "something bright" · "same key as the moody one but
+major" · "you pick, but darker than the optimistic one" · "you pick."
+
+---
+
+#### Question 3 — Does the harmony go anywhere, or does it just loop?
+
+The single biggest driver of whether a 60-second piece holds attention. The
+optimistic bundle's entire identity is one event: the G→C lift at bar 17. The
+moody bundle deliberately has none — it broods in one place, which is the point.
+
+| Answer | What happens |
+|---|---|
+| **"Just loop it"** | One 8-bar cycle repeated. Hypnotic, ambient, background-music-safe. What moody does. |
+| **"One key change, lifting"** | Modulate up a fourth or a whole step partway through. Uplift. What optimistic does. |
+| **"One key change, dropping"** | Modulate down, or major → parallel minor. The floor falls out. |
+| **"Gradual darkening"** | Same key, but voicings descend, chords sour, drums thin out. Slow dread. |
+| **"Build and release"** | Sparse → full → sudden drop to near-silence → return. Dance-music shape. |
+| **"Two contrasting sections"** | AABA. B in a different mode or register, then home. Song-like. |
+| **"False ending"** | Everything stops around 45 s, then one last phrase. Unsettling or tender. |
+| **"You pick"** | I'll choose something that fits the mood and tell you where the event lands. |
+
+Whatever you pick, the timestamp of the event goes into `structure.json` and the
+video reacts to it — see §2.5 and §3.7. A structural event the visualizer ignores
+is a wasted one.
 
 ### 1.2 The ones with defaults — override if you care
 
 | Question | Default if you don't say |
 |---|---|
-| **Tempo and feel** | Derived from mood: brooding 60–75, reflective 76–95, upbeat 96–120, driving 121–140 |
+| **Tempo and feel** | Derived from mood: brooding 55–75, reflective 76–95, upbeat 96–120, driving 121–145 |
 | **Length** | ~60 s, matching both existing bundles |
 | **Meter** | 4/4 |
 | **Drums?** | Yes. Say "no drums" for something ambient — the framework handles it, the visualizer just gets quieter |
@@ -69,7 +151,34 @@ name:
 notes:       
 ```
 
-### 1.4 Things you never need to tell me
+### 1.4 What the exchange looks like
+
+The shortest useful version, start to finish:
+
+> **You:** create a new music video
+>
+> **Claude:** Three questions before I start — everything else I'll default.
+> 1. Mood or genre, in your own words? (e.g. "nocturnal jazz, smoky", "driving
+>    and mechanical", "pastoral sunrise" — or describe a scene)
+> 2. Key and mode, or "you pick"? Mode matters most: Dorian is cool and jazzy,
+>    Lydian floats, Phrygian is dark and tense.
+> 3. Does the harmony go anywhere — just loop, one key change, a build and
+>    release, a gradual darkening? Or "you pick"?
+>
+> **You:** rainy city at 2am. you pick the key. gradual darkening
+>
+> **Claude:** Building `template/rain_city_bundle`. D Dorian at 76 BPM — cool
+> rather than self-pitying, which suits 2am better than a plain minor. 24 bars,
+> ~63 s, 4/4. Voicings descend a register per section and the drums thin out to
+> just rim clicks by the last eight bars. Karplus-Strong pluck lead, brushed
+> snare, long reverb. Palette: wet asphalt blue-grey, dim sodium-orange orb,
+> particles falling instead of rising. Defaults everywhere else. Starting now.
+
+Note what Claude did *not* ask about: tempo, length, meter, drum feel, lead
+sound, palette, naming. All of those were derived from four words of mood and
+stated as assumptions, which you can correct after hearing it.
+
+### 1.5 Things you never need to tell me
 
 Register and voicing choices, exact chord spellings, reverb tap times, particle
 counts, envelope times, FFT settings, ffmpeg flags. Those are mine unless you
