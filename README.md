@@ -2,99 +2,128 @@
 
 Music generation using Claude Code.
 
-A playground for making music with an AI coding agent — symbolic composition,
-numerical synthesis, and audio-reactive video, all generated from plain Python.
-No AI audio or video models involved; every note and every frame comes from code.
+Every piece here — the notes, the sound, the video — is generated from plain
+Python. Symbolic composition to MIDI, numerical synthesis in numpy, audio-reactive
+video drawn frame by frame with Pillow. **No AI audio or video models, no sample
+libraries.** Every sound is arithmetic; every frame is drawn.
 
-## Structure
+You describe a mood in a sentence; the result is a finished music video.
 
-```
-.
-├── README.md
-└── template/
-    ├── instructions.md     # how to build a new bundle — read this first
-    ├── moody_drums_bundle/
-    ├── optimistic_drums_bundle/
-    └── morning_forest_bundle/
-        ├── README.md      # full recipe to regenerate the track from scratch
-        ├── structure.json # bar/section map, handed from script 01 to script 02
-        ├── scripts/
-        │   ├── 01_make_music.py   # MIDI + WAV synthesis + MP3
-        │   └── 02_make_video.py   # audio-reactive visualizer
-        └── assets/
-            ├── optimistic_drums.mid
-            ├── optimistic_drums.wav
-            ├── optimistic_drums.mp3
-            └── optimistic_drums_visualizer.mp4
-```
+## The bundles
 
-## Templates
+| | Key | Tempo | Form | Character |
+|---|---|---|---|---|
+| [`moody_drums_bundle`](template/moody_drums_bundle/) | A minor | 68 BPM | 16 bars, 60.5 s | Brooding. Half-time kit, descending melody, cathedral reverb. |
+| [`optimistic_drums_bundle`](template/optimistic_drums_bundle/) | G → C | 104 BPM | 24 bars, 59.4 s | Uplift. One key change at bar 17, warm sunrise palette. |
+| [`morning_forest_bundle`](template/morning_forest_bundle/) | C → D → C → E → C | 112 BPM | 40 bars, 89.7 s | Crisp and hopeful. A harmonic arch, arpeggio, god-rays. |
 
 ### `moody_drums_bundle`
 
-A 16-bar piece in A minor at 68 BPM — pad, bass, sparse flute-ish melody, and a
-half-time drum kit entering at bar 3 — plus a 1280x720 visualizer driven by RMS,
-a 32-band log spectrum, and a low-band onset detector. The original template.
+The original. A minor at 68 BPM — pad, bass, a sparse flute-ish melody, and a
+half-time drum kit entering at bar 3 — plus a 1280×720 visualizer driven by RMS,
+a 32-band log spectrum, and a low-band onset detector.
 
-```bash
-cd template/moody_drums_bundle/scripts
-python3 01_make_music.py                  # -> moody_drums.mid, moody_drums.wav
-ffmpeg -y -i moody_drums.wav -b:a 192k moody_drums.mp3
-python3 02_make_video.py                  # -> moody_drums_visualizer.mp4
-```
-
-Output paths are hard-coded to `/mnt/user-data/outputs/` at the top of each
-script — edit them for your machine.
+Output paths are hard-coded to `/mnt/user-data/outputs/` in both scripts; edit
+them before running, and note this bundle expects a system ffmpeg.
 
 ### `optimistic_drums_bundle`
 
-Same pipeline, brighter genre: 24 bars at 104 BPM that start in **G major** and
-lift to **C major** at bar 17. The visualizer runs a warm sunrise palette and
-blooms at the modulation. Built as a reproducibility test of the moody template;
-the fixes it produced are listed in
+Same pipeline, brighter genre: 24 bars that start in **G major** and lift to
+**C major** at bar 17. The visualizer runs a warm sunrise palette and blooms at
+the modulation.
+
+Built as a reproducibility test of the moody template — the MIDI regenerated
+byte-identical and the WAV regenerated with 100% identical PCM samples on a
+different Python/numpy/scipy stack. The fixes that came out of it (script-relative
+paths, ffmpeg fallback, in-script MP3, the `structure.json` handoff) are listed in
 [its README §7](template/optimistic_drums_bundle/README.md#7-what-changed-from-the-moody-template).
+
+### `morning_forest_bundle`
+
+40 bars whose harmony arches **C → D → C → E → C** across five 8-bar sections,
+each modulation prepared by the dominant of the key it enters. Built from the
+brief *"happy and clear and full of hope… crisp and clean, like walking into a
+forest in the morning."*
+
+The crispness is an 8th-note Karplus-Strong arpeggio in place of a sustained pad,
+an FM-bell lead over a sine core, and the brightest, shortest reverb of the three.
+The kit is shaker, soft kick, rim and brush — no ordinary snare. The visualizer
+inverts the gradient (light above, understory below), adds precomputed god-rays,
+and brightens the whole scene in step with the arch.
+
+## Making a new one
+
+Point Claude Code at [`template/instructions.md`](template/instructions.md) and
+say what you want — even just "create a new music video." It will ask you three
+questions, default everything else, build the bundle, verify it, and hand you
+the `.mp4`.
+
+The three questions, because nothing sensible can be guessed for them:
+
+1. **Mood or genre, in your own words.** One sentence. "Nocturnal jazz, smoky bar,
+   brushes not sticks." "Driving and mechanical, like a train at night."
+2. **Key and mode** — or "you pick." Mode matters more than key: Dorian, Lydian
+   and Phrygian on the same root are three different pieces.
+3. **Does the harmony go anywhere?** Just loop, one key change, a gradual
+   darkening, a build and release, a false ending?
+
+`instructions.md` also holds the invariant framework contract, a menu of what
+should vary between bundles (modes, forms, 11 drop-in synth voices, drum feels,
+reverb, palettes), the build procedure, and the verification a bundle must pass.
+
+## Running a bundle
 
 ```bash
 pip install numpy scipy pillow midiutil imageio-ffmpeg
 
-cd template/optimistic_drums_bundle/scripts
-python3 01_make_music.py       # -> ../assets/{mid,wav,mp3}, ../structure.json
-python3 02_make_video.py       # -> ../assets/optimistic_drums_visualizer.mp4
+cd template/<name>_bundle/scripts
+python3 01_make_music.py     # -> ../assets/{mid,wav,mp3}, ../structure.json
+python3 02_make_video.py     # -> ../assets/<name>_visualizer.mp4
 ```
 
-No path editing needed; ffmpeg is located automatically.
+No system ffmpeg required — the scripts fall back to the static binary bundled
+with `imageio-ffmpeg`. Expect a few seconds for the audio and roughly 1.3 s of
+render per second of music for the video.
 
-### `morning_forest_bundle`
+## Layout
 
-40 bars at 112 BPM. The harmony arches **C → D → C → E → C** across five 8-bar
-sections, each modulation prepared by the dominant of the key it enters. Built
-from the brief *"happy and clear and full of hope… crisp and clean, like walking
-into a forest in the morning."*
-
-Crispness comes from an 8th-note Karplus-Strong arpeggio in place of a sustained
-pad, an FM-bell lead, and the brightest reverb of the three bundles. The kit is
-shaker, soft kick, rim and brush — no ordinary snare. The visualizer inverts the
-gradient (light above, understory below), adds precomputed god-rays, and
-brightens the whole scene in step with the arch.
-
-```bash
-cd template/morning_forest_bundle/scripts
-python3 01_make_music.py       # -> ../assets/{mid,wav,mp3}, ../structure.json
-python3 02_make_video.py       # -> ../assets/morning_forest_visualizer.mp4
+```
+.
+├── CLAUDE.md                       guidance for Claude Code
+├── README.md
+└── template/
+    ├── instructions.md             the spec for building a new bundle
+    ├── moody_drums_bundle/
+    ├── optimistic_drums_bundle/
+    └── morning_forest_bundle/
+        ├── README.md               full recipe, detailed enough to rebuild from alone
+        ├── structure.json          bar/section map, script 01 → script 02
+        ├── scripts/
+        │   ├── 01_make_music.py    composition → MIDI → WAV → MP3
+        │   └── 02_make_video.py    analysis → frames → MP4
+        └── assets/
+            ├── morning_forest.mid
+            ├── morning_forest.wav
+            ├── morning_forest.mp3
+            └── morning_forest_visualizer.mp4
 ```
 
-## Adding a template
+Every bundle is self-contained and follows this shape. Each `README.md` is written
+so the piece could be rebuilt from the document alone, without the scripts.
 
-Read [`template/instructions.md`](template/instructions.md). It is the spec for
-building a new bundle: the questions to answer up front, the parts of the
-framework that must stay fixed, a menu of everything that should change, and the
-verification steps a bundle has to pass. Hand it to Claude Code with a one-line
-brief ("nocturnal jazz in D dorian, brushes, no key change") and it has enough to
-go on.
+## Reproducibility
 
-The mechanics:
+The MIDI is deterministic. The audio is deterministic down to the sample — but
+check the **PCM data**, not the WAV file:
 
-Each template is a self-contained folder under `template/` with a `README.md`
-describing the recipe, a `scripts/` folder, and an `assets/` folder holding the
-rendered output. The README should be detailed enough that the piece can be
-regenerated from the document alone.
+```python
+import hashlib
+from scipy.io import wavfile
+sr, a = wavfile.read("assets/<name>.wav")
+print(hashlib.md5(a.tobytes()).hexdigest())
+```
+
+WAV file-level MD5s differ across scipy versions over optional RIFF chunks while
+the samples stay bit-identical, so the file hashes recorded in each bundle README
+are reference only. MP3 and MP4 bytes vary with the ffmpeg build; the audible and
+visible content does not.
