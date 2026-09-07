@@ -12,6 +12,7 @@ No AI audio or video models involved; every note and every frame comes from code
 .
 ├── README.md
 └── template/
+    ├── instructions.md     # how to build a new bundle — read this first
     ├── moody_drums_bundle/
     └── optimistic_drums_bundle/
         ├── README.md      # full recipe to regenerate the track from scratch
@@ -63,6 +64,15 @@ python3 02_make_video.py       # -> ../assets/optimistic_drums_visualizer.mp4
 No path editing needed; ffmpeg is located automatically.
 
 ## Adding a template
+
+Read [`template/instructions.md`](template/instructions.md). It is the spec for
+building a new bundle: the questions to answer up front, the parts of the
+framework that must stay fixed, a menu of everything that should change, and the
+verification steps a bundle has to pass. Hand it to Claude Code with a one-line
+brief ("nocturnal jazz in D dorian, brushes, no key change") and it has enough to
+go on.
+
+The mechanics:
 
 Each template is a self-contained folder under `template/` with a `README.md`
 describing the recipe, a `scripts/` folder, and an `assets/` folder holding the
