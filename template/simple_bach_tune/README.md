@@ -285,9 +285,9 @@ sig = np.sin(2 * np.pi * freq * h * vib * t)     # WRONG
 Multiplying `t` by `vib` inside the sine modulates *phase*, not frequency. The
 instantaneous frequency is `f * (vib + t * dvib/dt)`, so the deviation grows
 linearly with time and a long note wanders further and further off pitch. Measured
-with a Hilbert transform on the shipped `moody_drums_bundle` voice, which uses the
-identical construction: **±7 cents intended, 14.4 semitones of swing on a 1 s note
-and 23.6 semitones on a 3 s note.** The fix is to integrate:
+on the fundamental of the `moody_drums_bundle` voice, which uses the identical
+construction, against an intended ±7 cents: **−159/+127 cents on a 1 s note,
+−416/+317 on a 2 s note, −719/+490 on a 3 s note.** The fix is to integrate:
 
 ```python
 for h in range(1, 9):
@@ -295,9 +295,16 @@ for h in range(1, 9):
     sig += np.sin(phase) / h ** 1.1
 ```
 
-This bundle is fixed. `moody_drums_bundle` and `optimistic_drums_bundle` still
-carry it; fixing them would change their audio and invalidate their recorded
-checksums, so it is left as a decision rather than done silently.
+All four bundles are now fixed; `moody_drums_bundle` and
+`optimistic_drums_bundle` were re-rendered afterwards, which moved their recorded
+checksums. The share of bars whose top three pitch classes are chord tones went
+from 69% to 96% in the moody bundle, which has the longest lead notes and was the
+worst affected.
+
+One measurement caveat worth carrying forward: a Hilbert instantaneous-frequency
+estimate is only valid for a single-component signal. Running it on the full voice,
+third harmonic included, reported roughly double the true deviation. Isolate the
+fundamental before trusting the number.
 
 **The chroma check has a blind spot for bright timbres.** Even after the fix, the
 phrase-level §5.2 output still shows an F♯ in phrases 1 and 3. It is not a played

@@ -24,14 +24,28 @@ Reproducibility notes:
 - The WAV/MP3 use two seeded RNGs (`default_rng(3)` for drum noise, `default_rng(7)` for video particles). Output is bit-identical on the same numpy version; across numpy versions the RNG stream is stable but floating point ordering can differ in the last bits.
 - MP3 and MP4 bytes will differ across ffmpeg builds. The audible and visible content will not.
 
-Reference MD5s from the original run:
+Verify the **PCM sample data**, not the WAV container — scipy versions differ in
+which optional RIFF chunks they write:
+
+```python
+import hashlib
+from scipy.io import wavfile
+sr, a = wavfile.read("assets/moody_drums.wav")
+print(hashlib.md5(a.tobytes()).hexdigest())   # 5a131df284775e1eb297dca3eeaecf63
+```
+
+File MD5s from the current run, for reference only:
 
 ```
-c1acedc3306d3ded2fe234558ca2d5e6  moody_drums.mid
-4afb91f3aea51e02dd4100e6ae9e51ff  moody_drums.wav
-1c402bc690342be15d7df1ba9a707363  moody_drums.mp3
-602e3e18f66a08a9cbb43e417a563d33  moody_drums_visualizer.mp4
+c1acedc3306d3ded2fe234558ca2d5e6  moody_drums.mid       (unchanged since the first run)
+dad711c822630fe1968be37f9a2c0d18  moody_drums.wav
+fcf4d622e5ad1b8390a17663fcdcd3b4  moody_drums.mp3
+8c28ca73fa27745c465a0013df28a3e8  moody_drums_visualizer.mp4
 ```
+
+> **These assets were re-rendered after a vibrato fix — see §8.** The MIDI is
+> byte-identical to the first run, because the bug was in synthesis only and the
+> score never changed.
 
 ## 1. Musical specification
 
@@ -110,7 +124,7 @@ All voices are built directly in numpy at 44.1 kHz.
 
 **Bass voice**: sine plus 0.3 x second harmonic. ADSR (0.02, 0.3, 0.6, 0.4). Root gain 0.35 for 2.6 beats; fifth gain 0.22 for 1.1 beats at beat 3.
 
-**Lead voice**: sine plus 0.15 x third harmonic, with 5 Hz vibrato of depth 0.4 percent that ramps in over 0.6 s. ADSR (0.08, 0.3, 0.75, 0.5). Gain 0.28. Duration note length plus 0.4 s.
+**Lead voice**: sine plus 0.15 x third harmonic, with 5 Hz vibrato of depth 0.4 percent that ramps in over 0.6 s. ADSR (0.08, 0.3, 0.75, 0.5). Gain 0.28. The vibrato integrates frequency to phase with `cumsum` — see §8. Duration note length plus 0.4 s.
 
 **Drums** (RNG seeded with 3)
 
@@ -156,14 +170,54 @@ ffmpeg -y -i moody_drums.wav -b:a 192k moody_drums.mp3
 
 ```bash
 cd scripts
-python3 01_make_music.py      # writes moody_drums.mid and moody_drums.wav
-ffmpeg -y -i moody_drums.wav -b:a 192k moody_drums.mp3
-python3 02_make_video.py      # reads moody_drums.wav, writes moody_drums_visualizer.mp4
+python3 01_make_music.py      # -> ../assets/{mid,wav,mp3}
+python3 02_make_video.py      # -> ../assets/moody_drums_visualizer.mp4
 ```
 
-The scripts write to `/mnt/user-data/outputs/` by default; change the paths at the top of each file for your own machine.
+Both scripts resolve their paths relative to the script and locate ffmpeg
+themselves, so nothing needs editing before a run. This was not always true — see §8.
 
-## 7. Prompt to regenerate the whole thing from an LLM
+## 7. Two later fixes
+
+This bundle was written first and the framework grew around it. Two things were
+changed afterwards, and the assets above are from the re-render.
+
+**The vibrato was modulating phase, not frequency.** `lead_voice` computed
+
+```python
+sig = np.sin(2 * np.pi * freq * vib * t)          # wrong
+```
+
+Multiplying `t` by a time-varying `vib` inside the sine makes the instantaneous
+frequency `f * (vib + t * dvib/dt)`, so the pitch error grows the longer the note
+is held. Measured on the fundamental with a Hilbert transform, against an intended
+±7 cents:
+
+| Note length | Before | After |
+|---|---|---|
+| 1.00 s | −159 / +127 cents | −6 / +7 cents |
+| 2.00 s | −416 / +317 cents | −7 / +7 cents |
+| 3.05 s | −719 / +490 cents | −7 / +7 cents |
+
+This bundle's melody holds notes up to 3 beats, so it was the worst affected of the
+four. The fix accumulates instead:
+
+```python
+ph = 2 * np.pi * np.cumsum(freq * vib) / SR
+sig = np.sin(ph) + 0.15 * np.sin(3 * ph)
+```
+
+Measured effect on the mix: the share of bars whose top three pitch classes are
+chord tones went from **69% to 96%**.
+
+**The scripts could not run anywhere but the machine that wrote them.** Output
+paths were hard-coded to `/mnt/user-data/outputs/`, script 02 invoked a bare
+`ffmpeg`, and the MP3 was a manual shell step between the two scripts. All three
+are now handled the way the other bundles do it: `Path(__file__).resolve().parent.parent
+/ "assets"`, a `shutil.which` → `imageio_ffmpeg` fallback, and an in-script
+transcode. No other behaviour changed.
+
+## 8. Prompt to regenerate the whole thing from an LLM
 
 If you want to hand this to a model instead of running the scripts:
 

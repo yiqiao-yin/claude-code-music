@@ -24,8 +24,9 @@ The original. A minor at 68 BPM — pad, bass, a sparse flute-ish melody, and a
 half-time drum kit entering at bar 3 — plus a 1280×720 visualizer driven by RMS,
 a 32-band log spectrum, and a low-band onset detector.
 
-Output paths are hard-coded to `/mnt/user-data/outputs/` in both scripts; edit
-them before running, and note this bundle expects a system ffmpeg.
+Originally it hard-coded its output paths and needed a system ffmpeg; both were
+converted to match the other bundles when its lead voice was fixed. It is still
+the only bundle without a `structure.json`.
 
 ### `optimistic_drums_bundle`
 

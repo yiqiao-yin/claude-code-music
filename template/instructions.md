@@ -589,8 +589,9 @@ Copy the scripts from the existing bundle closest to what you're building and
 edit them. `optimistic_drums_bundle` is the clean baseline — script-relative
 paths, in-script MP3, `structure.json` handoff, single FFT pass.
 `morning_forest_bundle` is the one to copy if the piece has more than two
-sections, an arpeggio, or alternative synth voices. `moody_drums_bundle` is the
-original and still has hard-coded paths; copy from it only for reference.
+sections, an arpeggio, or alternative synth voices. `simple_bach_tune` is the one
+for a 16th-note grid. `moody_drums_bundle` is the original and still has no
+`structure.json`, so its script 02 hard-codes its own caption; prefer the others.
 
 Writing fresh from the §2 contracts produces something that *works* and quietly
 drifts — different helper names, a different envelope shape, a reimplemented
@@ -776,18 +777,20 @@ scripts should be able to rebuild the piece from the README alone.**
 - **Vibrato must integrate frequency to phase.** Writing
   `sin(2*pi * freq * vib * t)` where `vib` varies with `t` modulates *phase*, not
   frequency: the instantaneous frequency picks up a `t * dvib/dt` term that grows
-  linearly, so the longer the note the further it wanders. Measured on
-  `moody_drums_bundle`'s shipped `lead_voice`, which has this form: an intended
-  ±7 cents becomes **14.4 semitones of swing on a 1 s note and 23.6 on a 3 s
-  note.** Always accumulate instead:
+  linearly, so the longer the note the further it wanders. Measured on the
+  fundamental of `moody_drums_bundle`'s original `lead_voice`, against an intended
+  ±7 cents: **−159/+127 cents on a 1 s note, −416/+317 on a 2 s note, −719/+490 on
+  a 3 s note.** Always accumulate instead:
 
   ```python
   phase = 2 * np.pi * np.cumsum(freq * h * vib) / SR
   sig += np.sin(phase) / h ** 1.1
   ```
 
-  `moody_drums_bundle` and `optimistic_drums_bundle` still carry the broken form.
-  Do not copy their `lead_voice`; copy `simple_bach_tune`'s `viol`.
+  Fixed in all four bundles as of the re-render. When measuring this yourself,
+  isolate the **fundamental only** — a Hilbert instantaneous-frequency estimate is
+  valid only for a single-component signal, and leaving a third harmonic in the
+  test signal roughly doubles the apparent deviation.
 - **midiutil cannot serialize two overlapping notes of the same pitch on the same
   channel.** `writeFile` dies with `IndexError: pop from empty list` inside
   `deInterleaveNotes`, and the traceback points at midiutil, not at your music.
@@ -800,8 +803,9 @@ scripts should be able to rebuild the piece from the README alone.**
   deleting them is still the wrong call — the WAV is part of the bundle's
   structure, and the repo is meant to hold the finished artifacts, not just a
   recipe for them. Do not propose pruning them to save space.
-- **Never hard-code output paths.** `moody_drums_bundle` writes to
-  `/mnt/user-data/outputs/` and cannot run anywhere else unedited.
+- **Never hard-code output paths.** `moody_drums_bundle` originally wrote to
+  `/mnt/user-data/outputs/` and could not run anywhere else unedited; it has since
+  been converted like the others.
 - **Never require system ffmpeg.** Use the `shutil.which` → `imageio_ffmpeg`
   fallback; some machines have no ffmpeg and no way to install one.
 - **WAV file MD5s are not a reproducibility check.** Re-running the moody script
@@ -841,8 +845,8 @@ scripts should be able to rebuild the piece from the README alone.**
 | Extra scene element | — | — | god-rays | 16-bar tick ring, chord readout |
 | Structural events | 0 | 1 | 4 | 3 phrase marks |
 | Accidentals | — | F♯, G♯ | F♯, G♯ | none, all white keys |
-| Paths | hard-coded | script-relative ✅ | script-relative ✅ | script-relative ✅ |
-| Vibrato bug (§7) | **present** | **present** | n/a (no vibrato) | fixed ✅ |
+| Paths | script-relative ✅ | script-relative ✅ | script-relative ✅ | script-relative ✅ |
+| Vibrato bug (§7) | fixed ✅ | fixed ✅ | n/a (no vibrato) | fixed ✅ |
 
 Folder naming: the first three are `<name>_bundle`; `simple_bach_tune` is not,
 because that was the folder name requested. Follow whatever the user asks for.

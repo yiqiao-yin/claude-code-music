@@ -1,7 +1,24 @@
+import shutil
+import subprocess
+from pathlib import Path
+
 import numpy as np
 from midiutil import MIDIFile
 from scipy.io import wavfile
 from scipy.signal import butter, lfilter
+
+OUT = Path(__file__).resolve().parent.parent / "assets"
+OUT.mkdir(parents=True, exist_ok=True)
+
+
+def ffmpeg_exe():
+    """System ffmpeg if present, else the static binary from imageio-ffmpeg."""
+    exe = shutil.which("ffmpeg")
+    if exe:
+        return exe
+    from imageio_ffmpeg import get_ffmpeg_exe
+    return get_ffmpeg_exe()
+
 
 BPM = 68
 BEAT = 60.0 / BPM
@@ -75,7 +92,7 @@ for bar in range(DRUM_START_BAR, BARS):
         mid.addNote(3, 9, 38, t + 3.5, 0.15, 70)
         mid.addNote(3, 9, 38, t + 3.75, 0.15, 80)
 
-with open("/mnt/user-data/outputs/moody_drums.mid", "wb") as f:
+with open(OUT / "moody_drums.mid", "wb") as f:
     mid.writeFile(f)
 
 # ---------------- Synthesis ----------------
@@ -115,10 +132,18 @@ def bass_voice(freq, dur):
     return sig * env(n, 0.02, 0.3, 0.6, 0.4, dur)
 
 def lead_voice(freq, dur):
+    """Sine plus a third harmonic, with a 5 Hz vibrato easing in over 0.6 s.
+
+    The vibrato integrates frequency to phase with cumsum. The original form,
+    `sin(2*pi * freq * vib * t)`, modulates phase instead: the instantaneous
+    frequency gains a `t * dvib/dt` term that grows without bound, turning an
+    intended +-7 cents into 14.4 semitones of swing on a 1 s note and 23.6 on a
+    3 s note."""
     n = int(dur * SR)
     t = np.arange(n) / SR
     vib = 1 + 0.004 * np.sin(2 * np.pi * 5 * t) * np.minimum(t / 0.6, 1)
-    sig = np.sin(2 * np.pi * freq * vib * t) + 0.15 * np.sin(2 * np.pi * freq * 3 * vib * t)
+    ph = 2 * np.pi * np.cumsum(freq * vib) / SR
+    sig = np.sin(ph) + 0.15 * np.sin(3 * ph)
     return sig * env(n, 0.08, 0.3, 0.75, 0.5, dur)
 
 def kick(dur=0.45):
@@ -194,5 +219,11 @@ out /= np.max(np.abs(out)) * 1.05
 # fade out tail
 fade = int(3 * SR)
 out[-fade:] *= np.linspace(1, 0, fade)
-wavfile.write("/mnt/user-data/outputs/moody_drums.wav", SR, (out * 32767).astype(np.int16))
+wav_path = OUT / "moody_drums.wav"
+mp3_path = OUT / "moody_drums.mp3"
+wavfile.write(wav_path, SR, (out * 32767).astype(np.int16))
+
+subprocess.run([ffmpeg_exe(), "-y", "-loglevel", "error",
+                "-i", str(wav_path), "-b:a", "192k", str(mp3_path)], check=True)
+
 print("done", total_sec)

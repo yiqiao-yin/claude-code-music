@@ -1,8 +1,24 @@
-import numpy as np, subprocess
+import shutil
+import subprocess
+from pathlib import Path
+
+import numpy as np
 from scipy.io import wavfile
 from PIL import Image, ImageDraw, ImageFilter
 
-SR, audio = wavfile.read("/mnt/user-data/outputs/moody_drums.wav")
+OUT = Path(__file__).resolve().parent.parent / "assets"
+
+
+def ffmpeg_exe():
+    """System ffmpeg if present, else the static binary from imageio-ffmpeg."""
+    exe = shutil.which("ffmpeg")
+    if exe:
+        return exe
+    from imageio_ffmpeg import get_ffmpeg_exe
+    return get_ffmpeg_exe()
+
+
+SR, audio = wavfile.read(OUT / "moody_drums.wav")
 audio = audio.astype(np.float32) / 32767
 DUR = len(audio) / SR
 W, H, FPS = 1280, 720, 24
@@ -62,12 +78,12 @@ pz = rng.uniform(0.3, 1.0, P)          # depth -> size/speed
 pph = rng.uniform(0, 2*np.pi, P)
 
 ff = subprocess.Popen([
-    "ffmpeg", "-y", "-loglevel", "error",
+    ffmpeg_exe(), "-y", "-loglevel", "error",
     "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-    "-i", "/mnt/user-data/outputs/moody_drums.wav",
+    "-i", str(OUT / "moody_drums.wav"),
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-preset", "medium",
     "-c:a", "aac", "-b:a", "192k", "-shortest",
-    "/mnt/user-data/outputs/moody_drums_visualizer.mp4"
+    str(OUT / "moody_drums_visualizer.mp4")
 ], stdin=subprocess.PIPE)
 
 cx, cy = W / 2, H * 0.44

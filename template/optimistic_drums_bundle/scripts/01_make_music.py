@@ -173,10 +173,18 @@ def bass_voice(freq, dur):
 
 
 def lead_voice(freq, dur):
+    """Sine plus a third harmonic, with a 5 Hz vibrato easing in over 0.6 s.
+
+    The vibrato integrates frequency to phase with cumsum. The original form,
+    `sin(2*pi * freq * vib * t)`, modulates phase instead: the instantaneous
+    frequency gains a `t * dvib/dt` term that grows without bound, turning an
+    intended +-7 cents into 14.4 semitones of swing on a 1 s note and 23.6 on a
+    3 s note."""
     n = int(dur * SR)
     t = np.arange(n) / SR
     vib = 1 + 0.004 * np.sin(2 * np.pi * 5 * t) * np.minimum(t / 0.6, 1)
-    sig = np.sin(2 * np.pi * freq * vib * t) + 0.15 * np.sin(2 * np.pi * freq * 3 * vib * t)
+    ph = 2 * np.pi * np.cumsum(freq * vib) / SR
+    sig = np.sin(ph) + 0.15 * np.sin(3 * ph)
     return sig * env(n, 0.06, 0.3, 0.75, 0.4)
 
 

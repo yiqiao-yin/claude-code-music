@@ -39,20 +39,23 @@ Reproducibility notes:
 import hashlib
 from scipy.io import wavfile
 sr, a = wavfile.read("assets/optimistic_drums.wav")
-print(hashlib.md5(a.tobytes()).hexdigest())   # 0bc5f0b09f43ccf57b50f9326a05a374
+print(hashlib.md5(a.tobytes()).hexdigest())   # 3efbdd7623717ba443d0b63692b86ae6
 ```
 
 - MP3 and MP4 bytes will differ across ffmpeg builds. The audible and visible
   content will not.
 
-File MD5s from the original run, for reference only:
+File MD5s from the current run, for reference only:
 
 ```
-07ae67caf0b14b5f3c7d42f11cdd35c9  optimistic_drums.mid
-07029d39168224c119cc17fad65e517d  optimistic_drums.wav
-7c3af1fcc499d17489d0691d1ee0bff1  optimistic_drums.mp3
-d07df0a474dfe53981b14314369b5069  optimistic_drums_visualizer.mp4
+07ae67caf0b14b5f3c7d42f11cdd35c9  optimistic_drums.mid   (unchanged since the first run)
+877f3df85e230a8422f69b5f4a94421a  optimistic_drums.wav
+be721f59df80f1378492da72b1a6b577  optimistic_drums.mp3
+637f59ec17fabad20b2106c931a5136e  optimistic_drums_visualizer.mp4
 ```
+
+> **These assets were re-rendered after a vibrato fix — see §10.** The MIDI is
+> byte-identical to the first run: the bug was in synthesis only.
 
 ## 1. Musical specification
 
@@ -164,7 +167,8 @@ gain 0.35 for 2.6 beats; fifth gain 0.22 for 1.1 beats at beat 3.
 
 **Lead voice**: sine plus 0.15 x third harmonic, with 5 Hz vibrato of depth 0.4
 percent ramping in over 0.6 s. ADSR (0.06, 0.3, 0.75, 0.4). Gain 0.28. Duration
-note length plus 0.4 s.
+note length plus 0.4 s. The vibrato integrates frequency to phase with `cumsum`
+— see §10.
 
 **Drums** (RNG seeded with 3)
 
@@ -283,7 +287,7 @@ that came out of the exercise.
 
 | Change | Why |
 |---|---|
-| Output paths resolve as `Path(__file__).parent.parent / "assets"` | The moody scripts hard-code `/mnt/user-data/outputs/`, so they fail on any other machine until you edit them. |
+| Output paths resolve as `Path(__file__).parent.parent / "assets"` | The moody scripts hard-coded `/mnt/user-data/outputs/` and failed on any other machine until edited. They were converted later, when their lead voice was fixed. |
 | ffmpeg located via `shutil.which`, falling back to `imageio-ffmpeg` | No system ffmpeg needed; `pip install imageio-ffmpeg` is enough. |
 | MP3 transcode folded into script 01 | The moody recipe has a manual shell step between the two scripts that is easy to skip. |
 | `structure.json` written by 01, read by 02 | Lets the visualizer react to musical structure (the key change) without duplicating BPM and bar constants in two files. |
@@ -335,3 +339,23 @@ Roughly 4 s for the audio and 75 s for the video on a laptop core.
 
 The exact parameter values in sections 1, 3 and 6 are what make the output match
 rather than merely resemble.
+
+## 10. Later fix: the vibrato
+
+`lead_voice` originally computed `sin(2 * np.pi * freq * vib * t)`, which
+modulates phase rather than frequency: the instantaneous frequency gains a
+`t * dvib/dt` term, so pitch drifts further the longer a note is held. Against an
+intended ±7 cents, a 1 s note swung −159/+127 cents and a 3 s note −719/+490.
+
+The fix accumulates phase:
+
+```python
+ph = 2 * np.pi * np.cumsum(freq * vib) / SR
+sig = np.sin(ph) + 0.15 * np.sin(3 * ph)
+```
+
+The share of bars whose top three pitch classes are chord tones went from **51% to
+61%** here — a smaller gain than `moody_drums_bundle`'s 69% → 96%, because this
+piece's melody notes are shorter and its chords carry more extensions, so the
+metric has less headroom. The assets in §0 are from the re-render; the MIDI is
+unchanged.
