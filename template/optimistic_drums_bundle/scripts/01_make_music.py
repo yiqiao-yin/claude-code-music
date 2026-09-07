@@ -284,6 +284,7 @@ subprocess.run([ffmpeg_exe(), "-y", "-loglevel", "error",
     "beats_per_bar": BEATS_PER_BAR,
     "duration_sec": total_sec,
     "section_starts_sec": [s * 8 * BEATS_PER_BAR * BEAT for s in range(len(SECTIONS))],
+    "section_keys": ["G major", "G major", "C major"],
     "modulation_sec": MOD_SEC,
     "title": "optimistic (with drums)  |  G major -> C major, 104 BPM",
 }, indent=2) + "\n")

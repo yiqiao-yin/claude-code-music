@@ -1,9 +1,10 @@
 # How to build a new music-video bundle
 
 This file is the spec for creating another folder like
-[`moody_drums_bundle`](moody_drums_bundle/) or
-[`optimistic_drums_bundle`](optimistic_drums_bundle/). It is written to be read
-by Claude Code *and* by a human.
+[`moody_drums_bundle`](moody_drums_bundle/),
+[`optimistic_drums_bundle`](optimistic_drums_bundle/) or
+[`morning_forest_bundle`](morning_forest_bundle/). It is written to be read by
+Claude Code *and* by a human.
 
 **The deal:** the framework never changes — same folder layout, same two scripts,
 same asset set, same pipeline (notes → code → audio → analysis → frames → video).
@@ -125,7 +126,7 @@ is a wasted one.
 | Question | Default if you don't say |
 |---|---|
 | **Tempo and feel** | Derived from mood: brooding 55–75, reflective 76–95, upbeat 96–120, driving 121–145 |
-| **Length** | ~60 s, matching both existing bundles |
+| **Length** | ~60 s. Go longer only when the form needs it — the five-section arch in `morning_forest_bundle` justifies its 90 s |
 | **Meter** | 4/4 |
 | **Drums?** | Yes. Say "no drums" for something ambient — the framework handles it, the visualizer just gets quieter |
 | **Lead instrument character** | A voice from the §3.5 menu chosen to fit the mood |
@@ -218,9 +219,11 @@ sample libraries. Every sound is arithmetic; every frame is drawn.
 - Paths: `OUT = Path(__file__).resolve().parent.parent / "assets"`, `OUT.mkdir(parents=True, exist_ok=True)`.
   Never hard-code an absolute path.
 - ffmpeg: `shutil.which("ffmpeg")` falling back to `imageio_ffmpeg.get_ffmpeg_exe()`.
-- Musical material lives in **module-level constants at the top** — `CHORDS`,
-  `BASS`, `MELODY`, drum pattern lists — so the README can quote them and a human
-  can edit them without reading the synthesis code.
+- Musical material lives in **module-level constants at the top** — chords, bass,
+  melody, drum pattern lists — so the README can quote them and a human can edit
+  them without reading the synthesis code. Names follow the shape of the piece:
+  `CHORDS`/`BASS`/`MELODY` for a single-key piece, `BASE`/`ARCH`/`SECTIONS` plus a
+  `section(i)` builder when the form transposes.
 - 4-track MIDI via `midiutil.MIDIFile(4)`: Pad ch0, Bass ch1, Lead ch2, Drums ch9.
   Program changes on tracks 0–2. Track roles can be renamed for a different
   arrangement, but keep it to four tracks on those channels.
@@ -259,15 +262,22 @@ sample libraries. Every sound is arithmetic; every frame is drawn.
   "beats_per_bar": 4,
   "duration_sec": 59.38,
   "section_starts_sec": [0.0, 18.46, 36.92],
+  "section_keys": ["G major", "G major", "C major"],
   "modulation_sec": 36.92,
   "title": "optimistic (with drums)  |  G major -> C major, 104 BPM"
 }
 ```
 
-`modulation_sec` may be `null` for a piece that stays in one key. Add extra keys
-freely (`drop_sec`, `build_start_sec`, `section_labels`) — the video script is
-the only consumer. **Any musical event the visualizer should react to but the
-onset detector cannot find belongs in this file.**
+Every field above is required except `modulation_sec`, which may be `null` for a
+piece that stays in one key — or for a piece with several changes, where
+`section_starts_sec` carries the information instead. `section_keys` is not read
+by the video script, but the §5.2 verification uses it to label its own output;
+without it you are eyeballing unlabelled numbers.
+
+Add extra keys freely (`section_transpose`, `peak_sec`, `drop_sec`,
+`build_start_sec`) — the video script is the only consumer. **Any musical event
+the visualizer should react to but the onset detector cannot find belongs in this
+file.**
 
 ### 2.6 Environment
 
@@ -276,6 +286,82 @@ pip install numpy scipy pillow midiutil imageio-ffmpeg
 ```
 
 No system ffmpeg required.
+
+### 2.7 Canonical helpers
+
+Identical in every bundle. Copy them verbatim; the §3.5 voice menu and the §3.4
+drum menu both assume these exact definitions exist.
+
+```python
+import shutil
+from pathlib import Path
+import numpy as np
+from scipy.signal import butter, lfilter
+
+SR = 44100
+OUT = Path(__file__).resolve().parent.parent / "assets"
+OUT.mkdir(parents=True, exist_ok=True)
+
+
+def ffmpeg_exe():
+    """System ffmpeg if present, else the static binary from imageio-ffmpeg."""
+    exe = shutil.which("ffmpeg")
+    if exe:
+        return exe
+    from imageio_ffmpeg import get_ffmpeg_exe
+    return get_ffmpeg_exe()
+
+
+def f_of(n):
+    """MIDI note number -> frequency in Hz."""
+    return 440.0 * 2 ** ((n - 69) / 12)
+
+
+def env(n_samp, a, d, s, r):
+    """Linear ADSR over n_samp samples. Segment lengths are clamped so a note
+    shorter than attack + decay + release cannot wrap around and click."""
+    e = np.ones(n_samp) * s
+    a_n = min(int(a * SR), n_samp)
+    d_n = min(int(d * SR), n_samp - a_n)
+    r_n = min(int(r * SR), n_samp)
+    if a_n:
+        e[:a_n] = np.linspace(0, 1, a_n)
+    if d_n:
+        e[a_n:a_n + d_n] = np.linspace(1, s, d_n)
+    if r_n:
+        e[-r_n:] *= np.linspace(1, 0, r_n)
+    return e
+
+
+def lowpass(x, cutoff, order=2):
+    b, a = butter(order, cutoff / (SR / 2))
+    return lfilter(b, a, x)
+
+
+def place(buf, sig, start_sec, gain):
+    """Mix sig into buf at start_sec, truncating at the end of the buffer."""
+    s = int(start_sec * SR)
+    e = min(s + len(sig), len(buf))
+    buf[s:e] += sig[: e - s] * gain
+
+
+rng_d = np.random.default_rng(3)     # every noise-based voice draws from this
+```
+
+The reverb is per-bundle rather than canonical — the tap times are a musical
+choice (§3.6) — but the shape is always the same: feedback-free taps, each
+low-passed, summed onto the dry signal, applied to the melodic sum only.
+
+```python
+def reverb(x):
+    y = x.copy()
+    for d_ms, g in ((61, 0.26), (89, 0.20), (127, 0.15), (211, 0.11)):
+        d = int(d_ms / 1000 * SR)
+        buf = np.zeros_like(x)
+        buf[d:] = x[:-d]
+        y += lowpass(buf, 4500) * g
+    return y
+```
 
 ---
 
@@ -289,11 +375,11 @@ subsection below.**
 
 Total seconds `= bars * beats_per_bar * 60 / bpm + tail`. Tail is 4 s.
 
-| | moody | optimistic |
-|---|---|---|
-| Form | 8-bar cycle × 2 = 16 bars | 8-bar cycle × 3 = 24 bars |
-| BPM | 68 | 104 |
-| Length | 60.5 s | 59.4 s |
+| | moody | optimistic | morning forest |
+|---|---|---|---|
+| Form | 8-bar cycle × 2 = 16 bars | 8-bar cycle × 3 = 24 bars | 8-bar cycle × 5 = 40 bars |
+| BPM | 68 | 104 | 112 |
+| Length | 60.5 s | 59.4 s | 89.7 s |
 
 Other shapes worth using: 4-bar cycle × 6 for something hypnotic; a 12-bar blues;
 16-bar through-composed with no repeat; an AABA with a contrasting B section;
@@ -366,7 +452,8 @@ The pattern *is* the genre. Beats are 0-indexed within the bar.
 | Brushes / jazz | 0, 2 | soft on 1, 3 | ride on 0, 1.5, 2, 3.5 |
 | None | — | — | — |
 
-Also vary: **entry point** (both bundles start drums at bar 3 — try bar 1, or
+Also vary: **entry point** (moody and optimistic both start drums at bar 3;
+morning forest stages it, shaker from bar 1 and the pulse from bar 5 — try bar 1, or
 halfway, or dropping out for a section), **fills** (every 4th bar in both — try
 every 8th, or a big one only before a section change), **swing** (offset every
 odd 8th by +0.06 beats), **ghost notes** (velocity 25–35 snares on the "e" and
@@ -453,7 +540,7 @@ def sweep_pad(freq, dur, f0=400, f1=3000):   # filter opening over the note
 Also: **arpeggiate** instead of sustaining (same chord, one note per 8th or 16th,
 using `pluck`); **detune amount** (0.4 cents is subtle, 8 cents is a chorused
 wash); **octave doubling**; **tremolo** (`* (0.7 + 0.3*np.sin(2*np.pi*5*t))`);
-**stereo** — both bundles are mono, and going stereo (two output buffers, pan
+**stereo** — every bundle so far is mono, and going stereo (two output buffers, pan
 voices, write shape `(n, 2)`) is a legitimate framework extension.
 
 ### 3.6 Mix and space
@@ -497,20 +584,44 @@ behaviour from `structure.json`, exactly as the optimistic bundle drives its
 
 ## 4. Build procedure
 
+**Step 0, and this is not optional: do not write either script from scratch.**
+Copy the scripts from the existing bundle closest to what you're building and
+edit them. `optimistic_drums_bundle` is the clean baseline — script-relative
+paths, in-script MP3, `structure.json` handoff, single FFT pass.
+`morning_forest_bundle` is the one to copy if the piece has more than two
+sections, an arpeggio, or alternative synth voices. `moody_drums_bundle` is the
+original and still has hard-coded paths; copy from it only for reference.
+
+Writing fresh from the §2 contracts produces something that *works* and quietly
+drifts — different helper names, a different envelope shape, a reimplemented
+reverb. The framework staying identical across bundles is the entire point of
+this repo. Read the source you're copying before you edit it.
+
+Then:
+
 1. **Collect the brief.** Ask the §1.1 questions in one batch. Restate the full
    spec back, including every default you're assuming, before writing code.
 2. **Write the material first.** Chords, bass, melody, drum pattern as constants.
-   Check every melody note against its chord. Check every bass note is the root of
-   its chord. Check registers are in range for the voices you picked.
-3. **Write `scripts/01_make_music.py`** to the §2.3 contract. Run it. Listen to
-   the numbers: §5.1.
-4. **Write `scripts/02_make_video.py`** to the §2.4 contract. Run it (~75 s for a
-   60 s piece).
-5. **Verify** with §5, all of it.
+   Then check, on paper, before running anything:
+   - every melody note against the chord under it — **in every section**, not just
+     the untransposed one. If a section's bar 8 is a pivot chord that does not
+     transpose with the rest, the melody over it is the most likely wrong note in
+     the piece.
+   - every bass note is the root of its chord (or a deliberate pedal/inversion)
+   - every part's register is sane for the voice you picked, and bass lines are
+     re-voiced by hand rather than transposed
+   - no two simultaneous parts on the same MIDI channel ever share a pitch (§7)
+3. **Write `scripts/01_make_music.py`.** Run it. Check §5.1.
+4. **Write `scripts/02_make_video.py`.** Run it — budget ~1.3 s of render per
+   second of music, so a 90 s piece takes about 2 minutes.
+5. **Verify** with §5, all of it, including looking at the extracted frames.
 6. **Write `README.md`** to the §6 outline, with the real measured numbers from
    step 5 — never numbers you expected to get.
-7. **Update the repo README** with the new bundle.
+7. **Update the repo README** and the §8 comparison table in this file.
 8. **Commit and push.**
+9. **Send the user the `.mp4`.** They asked for a music video; a git commit is not
+   one. Deliver the file, and say where the structural events land in
+   minutes:seconds so they know what to listen for.
 
 ---
 
@@ -536,24 +647,41 @@ print('dur %.2fs  peak %.3f  rms %.4f' % (len(a)/sr, np.abs(a).max(), np.sqrt((a
 Do not skip this. It catches transposition errors, wrong voicings, and melodies
 that are in a different key from their chords.
 
+Run it from the bundle root. The windows come from `structure.json`, so it works
+unchanged for any number of sections:
+
 ```bash
 python3 -c "
-import numpy as np; from scipy.io import wavfile
-sr,a = wavfile.read('assets/NAME.wav'); a = a.astype(np.float32)/32767
+import json, numpy as np
+from scipy.io import wavfile
+name = 'NAME'
+st = json.load(open('structure.json'))
+sr, a = wavfile.read('assets/%s.wav' % name); a = a.astype(np.float32)/32767
 names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
 def chroma(seg):
     mag = np.abs(np.fft.rfft(seg*np.hanning(len(seg)))); f = np.fft.rfftfreq(len(seg), 1/sr)
     ok = (f>60)&(f<2000); pc = np.zeros(12)
     np.add.at(pc, np.round(69+12*np.log2(np.maximum(f[ok],1e-9)/440)).astype(int)%12, mag[ok])
     return pc/pc.sum()
-for lbl, s, e in [('section 1', 5, 30), ('section 2', 38, 55)]:
+starts = st['section_starts_sec'] + [st['duration_sec'] - 4]
+keys = st.get('section_keys', ['?'] * (len(starts)-1))
+for i in range(len(starts)-1):
+    s, e = starts[i] + 2, starts[i+1] - 1          # trim the modulation edges
     c = chroma(a[int(s*sr):int(e*sr)])
-    print(lbl, ' '.join('%s:%.3f'%(names[i], c[i]) for i in np.argsort(c)[::-1][:5]))
+    top = np.argsort(c)[::-1][:5]
+    print('%-2d %-10s %s' % (i+1, keys[i], ' '.join('%s:%.3f'%(names[j], c[j]) for j in top)))
 "
 ```
 
-The tonic should rank first or second. Notes outside the mode should not appear
-in the top five. If there's a key change, the two sections must differ.
+Read the output against three rules:
+
+- **The tonic ranks first or second.** Second is common and fine — a cycle that
+  leans on its dominant will put the fifth on top.
+- **Every pitch class in the top five is diatonic to that section's key.** This is
+  the rule that actually catches bugs. An F♯ in a C major section means a
+  transposition went somewhere it shouldn't.
+- **If the piece modulates, the sections differ.** Identical chroma across a
+  claimed key change means the transposition never happened.
 
 ### 5.3 Video
 
@@ -590,7 +718,7 @@ method — see §7.
 
 ## 6. The bundle README outline
 
-Same shape both existing bundles use. The test: **someone with no access to the
+The same shape all three existing bundles use. The test: **someone with no access to the
 scripts should be able to rebuild the piece from the README alone.**
 
 ```
@@ -610,13 +738,28 @@ scripts should be able to rebuild the piece from the README alone.**
 7. What's different       what this bundle changes vs. the others, and why —
                           this is the section that makes the folder worth having
 8. Run order              the two commands and rough timings
-9. LLM regeneration prompt  one paragraph that would reproduce the piece
+9. Verification results   the actual §5 numbers — duration, peak, RMS, onset
+                          count, the per-section chroma output, and which frame
+                          timestamps you looked at
+10. LLM regeneration prompt  one paragraph that would reproduce the piece
 ```
 
 ---
 
 ## 7. Pitfalls, learned the hard way
 
+- **midiutil cannot serialize two overlapping notes of the same pitch on the same
+  channel.** `writeFile` dies with `IndexError: pop from empty list` inside
+  `deInterleaveNotes`, and the traceback points at midiutil, not at your music.
+  It bites whenever one track carries two simultaneous parts — a sustained pad
+  plus an arpeggio, a melody plus its own harmony. Fixes, in order of preference:
+  put the second part an octave away so the pitch sets cannot intersect (what
+  `morning_forest_bundle` does), or shorten note durations so nothing overlaps.
+  Check for it at step 2 of §4, not by waiting for the crash.
+- **Keep the `.wav` files in git.** They are large and they are regenerable, and
+  deleting them is still the wrong call — the WAV is part of the bundle's
+  structure, and the repo is meant to hold the finished artifacts, not just a
+  recipe for them. Do not propose pruning them to save space.
 - **Never hard-code output paths.** `moody_drums_bundle` writes to
   `/mnt/user-data/outputs/` and cannot run anywhere else unedited.
 - **Never require system ffmpeg.** Use the `shutil.which` → `imageio_ffmpeg`
