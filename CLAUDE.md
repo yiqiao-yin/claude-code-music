@@ -4,7 +4,7 @@ Guidance for Claude Code working in this repo.
 
 ## What this repo is
 
-Eight self-contained music-video "bundles", each generating a piece of music and an
+Nine self-contained music-video "bundles", each generating a piece of music and an
 audio-reactive video for it **entirely from code** — symbolic composition to MIDI,
 numerical synthesis in numpy, frame-by-frame rendering with Pillow, muxed by
 ffmpeg.
@@ -16,7 +16,7 @@ model, it is the wrong task for this repo.
 
 The work has two halves, and both matter:
 
-1. **The pieces.** Eight of them, deliberately unalike — see the table below.
+1. **The pieces.** Nine of them, deliberately unalike — see the table below.
 2. **The method.** [`template/instructions.md`](template/instructions.md) is the
    accumulated spec: how to take a brief, what must stay fixed, what should vary,
    how to verify, and every trap found so far. It grows with each bundle. Adding a
@@ -52,8 +52,9 @@ The short version:
 | `music_box_waltz` | **3/4** | **D Dorian** | 132 | 58.6 s | Inharmonic struck bar, oom-pah-pah, three-beat orbit. |
 | `church_passacaglia` | 3/4 | **E Phrygian** | 80 | 94.0 s | Pipe organ, **no percussion**, a ground bass five times over. |
 | `mozart_sonata_allegro` | 4/4 | C minor | 138 | 87.5 s | Classical piano, sonata form, Alberti bass. **First stereo bundle.** |
+| `moonlight_storm` | 4/4 | C♯ minor | 72 | 98.3 s | Beethoven. Pedalled piano, 6.4:1 dynamic swell, harmonic bloom. |
 
-Still untouched, for a ninth: swing, an odd meter (5/4, 7/8), and the modes
+Still untouched, for a tenth: swing, an odd meter (5/4, 7/8), and the modes
 Lydian and Mixolydian.
 
 ## Layout
@@ -68,7 +69,8 @@ template/
 ├── avenger_beginning_song/
 ├── music_box_waltz/
 ├── church_passacaglia/
-└── mozart_sonata_allegro/
+├── mozart_sonata_allegro/
+└── moonlight_storm/
 ```
 
 Every bundle has the same shape:
@@ -98,6 +100,9 @@ Which to copy when starting a new one:
   or variations over a fixed ground.
 - **`mozart_sonata_allegro`** — **stereo**, written dynamics, piano or any struck
   string, or a form that modulates and returns.
+- **`moonlight_storm`** — a sustain pedal (notes ringing past their written
+  length), a large dynamic range, or acceleration by note density rather than
+  tempo.
 - **`moody_drums_bundle`** — the original. Still the only bundle with no
   `structure.json`, so its script 02 hard-codes its own caption. Prefer the others.
 
@@ -151,6 +156,10 @@ an absolute output path.
 - **The onset-count rule needs the right denominator** — every attack in the
   40–120 Hz band, not just kicks. A piece whose bass is power chords at E1 measured
   8.9× against kicks and 1.6× against the honest count, with nothing wrong.
+- **The RMS band assumes constant loudness.** A piece with a real dynamic range
+  reads low and is correct — `moonlight_storm` measures 0.064 against a 6.4:1
+  range. Check per-section RMS instead, and if you wrote dynamics, correlate them
+  against measured loudness (it scores 0.923).
 - **Verify PCM data, not the WAV file.** `hashlib.md5(a.tobytes())` after
   `wavfile.read`; file MD5s differ across scipy versions over optional RIFF chunks.
 - **Seeded RNG everywhere** — `default_rng(3)` for audio, `default_rng(7)` for

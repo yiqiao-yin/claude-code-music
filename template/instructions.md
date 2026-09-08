@@ -989,6 +989,29 @@ print('dur %.2fs  peak %.3f  rms %.4f' % (len(a)/sr, np.abs(a).max(), np.sqrt((a
 - RMS 0.10–0.25 — below 0.08 is thin, above 0.30 is squashed
 - No clipping: `np.abs(a).max() < 1.0`
 
+**The RMS band assumes roughly constant loudness.** A piece with a real dynamic
+range will read low and be correct: `moonlight_storm` measures 0.064 against a
+6.4:1 written range, because peak normalization is set by its loudest bars and
+everything else is genuinely quiet. For any bundle carrying a `dynamics` array,
+**check per-section RMS and require the loudest section to be in band** instead.
+
+```python
+for i, lab in enumerate(st["section_labels"]):
+    seg = m[int(starts[i]*sr):int(starts[i+1]*sr)]
+    print(lab, "%.4f" % np.sqrt((seg**2).mean()))
+```
+
+**And if you wrote dynamics, verify they are audible.** Correlate the per-bar
+written dynamic against the per-bar measured RMS; `moonlight_storm` scores 0.923.
+Below about 0.7 means the swell is on paper only.
+
+```python
+lv = np.array([np.sqrt((m[int(b*bar*sr):int((b+1)*bar*sr)]**2).mean())
+               for b in range(st["bars"])])
+print("dynamics vs loudness r = %.3f"
+      % np.corrcoef(np.array(st["dynamics"]), lv)[0, 1])
+```
+
 ### 5.2 The key is what you say it is
 
 Do not skip this. It catches transposition errors, wrong voicings, and melodies
@@ -1084,6 +1107,11 @@ hypothesis, not a verdict.**
    modes land wherever they land. `avenger_beginning_song` reported an A♯ no part
    plays; `music_box_waltz`'s struck-bar modes (2.76, 5.40, 8.93) do the same.
 3. **Too wide an analysis band.** Anything above ~1200 Hz is mostly partials.
+4. **Deep sustained bass with inharmonic partials.** A low note held for seconds
+   has dozens of partials inside the analysis band, and string stiffness stretches
+   them off the grid. `moonlight_storm` reported a D nobody plays: it is the 11th
+   partial of the pedalled low G♯, and the 11th harmonic sits a **tritone** above
+   its fundamental. Any bundle with a sustain pedal and a deep bass will do this.
 
 The procedure when something is flagged:
 
@@ -1229,22 +1257,22 @@ scripts should be able to rebuild the piece from the README alone.**
 
 ## 8. Reference: what exists so far
 
-| | moody | optimistic | morning forest | simple bach | avenger | music box | church passacaglia | mozart sonata |
-|---|---|---|---|---|---|---|---|---|
-| Meter | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 3/4 | 3/4 | 4/4 |
-| Key / mode | A minor | G → C | arch C–E | C major | E minor | D Dorian | E Phrygian | **C minor, sonata form** |
-| Tempo | 68 | 104 | 112 | 72 | 88 | 132 | 80 | 138 |
-| Length | 60.5 s | 59.4 s | 89.7 s | 57.3 s | 91.3 s | 58.6 s | 94.0 s | 87.5 s |
-| Channels | mono | mono | mono | mono | mono | mono | mono | **stereo** |
-| Main voice | additive pad | additive pad | Karplus-Strong | harpsichord | scooped brass | inharmonic bar | pipe organ | **fortepiano** |
-| Drums | half-time kit | backbeat kit | shaker kit | shaker/kick/rim | timpani/taiko | brushed waltz | none | none |
-| `pulse` from | onsets | onsets | onsets | onsets | onsets | onsets | downbeat (starved) | downbeat (saturated) |
-| Dynamics | fixed | fixed | fixed | fixed | fixed | fixed | fixed | **per bar, exported** |
-| RMS | 0.175 | 0.176 | 0.145 | 0.205 | 0.132 | 0.138 | 0.182 | 0.110 |
-| Scene element | — | — | god-rays | tick ring | two-hand score | beat orbit | accumulating rings | **tonal journey** |
+| | moody | optimistic | morning forest | simple bach | avenger | music box | church passacaglia | mozart sonata | moonlight storm |
+|---|---|---|---|---|---|---|---|---|---|
+| Meter | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 3/4 | 3/4 | 4/4 | 4/4 |
+| Key / mode | A minor | G → C | arch C–E | C major | E minor | D Dorian | E Phrygian | C minor | **C♯ harmonic minor** |
+| Tempo | 68 | 104 | 112 | 72 | 88 | 132 | 80 | 138 | 72 |
+| Length | 60.5 s | 59.4 s | 89.7 s | 57.3 s | 91.3 s | 58.6 s | 94.0 s | 87.5 s | 98.3 s |
+| Channels | mono | mono | mono | mono | mono | mono | mono | stereo | stereo |
+| Main voice | additive pad | additive pad | Karplus-Strong | harpsichord | scooped brass | inharmonic bar | pipe organ | fortepiano | **pedalled piano** |
+| Drums | half-time | backbeat | shaker kit | shaker/kick/rim | timpani/taiko | brushed waltz | none | none | none |
+| `pulse` from | onsets | onsets | onsets | onsets | onsets | onsets | downbeat | downbeat | downbeat |
+| Dynamics | fixed | fixed | fixed | fixed | fixed | fixed | fixed | per bar | **6.4:1 range** |
+| RMS | 0.175 | 0.176 | 0.145 | 0.205 | 0.132 | 0.138 | 0.182 | 0.110 | **0.064** (see §5.1) |
+| Scene element | — | — | god-rays | tick ring | two-hand score | beat orbit | accumulating rings | tonal journey | **harmonic bloom** |
 
 Folder naming: the first three are `<name>_bundle`, the rest are not, because
 those were the folder names requested. Follow whatever the user asks for.
 
-A ninth bundle should differ from **all eight**. Still untouched: **swing**, an
+A tenth bundle should differ from **all nine**. Still untouched: **swing** and an
 **odd meter** (5/4, 7/8), and the modes **Lydian** and **Mixolydian**.

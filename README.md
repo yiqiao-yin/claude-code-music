@@ -22,6 +22,7 @@ result is a finished music video.
 | [`music_box_waltz`](template/music_box_waltz/) | D dorian | 132 BPM | 40 bars, 58.6 s | Waltz in **3/4**. Inharmonic music box, accordion oom-pah-pah. |
 | [`church_passacaglia`](template/church_passacaglia/) | E phrygian | 80 BPM | 40 bars, 94.0 s | Baroque, pipe organ, **no percussion**. A ground bass, five times. |
 | [`mozart_sonata_allegro`](template/mozart_sonata_allegro/) | C minor | 138 BPM | 48 bars, 87.5 s | Classical piano, sonata form, Alberti bass. **Stereo.** |
+| [`moonlight_storm`](template/moonlight_storm/) | C♯ minor | 72 BPM | 28 bars, 98.3 s | Beethoven. Pedalled piano, a 6.4:1 dynamic swell. |
 
 ### `moody_drums_bundle`
 
@@ -150,6 +151,25 @@ inharmonicity (`fₙ = n·f₀·√(1+Bn²)`) with decay depending on both parti
 and pitch. The visualizer plots the harmony's distance from home, so you can watch
 sonata form leave and come back.
 
+### `moonlight_storm`
+
+From *"sound like Beethoven's Moonlight sonata"*, then: the first movement **into**
+the third, swelling and receding, dying away. That combination is a shape
+Beethoven never wrote — the finale's storm arrives and then **dissolves** instead
+of resolving — so it is original music built from the sonata's devices rather than
+a transcription.
+
+The sustain pedal is the whole idea. Beethoven's marking is *senza sordino*, no
+dampers: here every one of the 648 notes rings a full 3.4 seconds regardless of
+its written length, so the piece is one continuous blur. The written MIDI
+durations and the synthesized ones deliberately disagree — the MIDI is the score,
+the WAV is the performance.
+
+It accelerates from triplets to 32nds **without changing tempo**, and carries a
+6.4:1 dynamic range, verified audible at r = 0.923. The visualizer flies every
+ringing note outward at an angle set by its pitch class, fading over exactly the
+pedal's 3.4 seconds — the pedal made visible.
+
 ## Making a new one
 
 Point Claude Code at [`template/instructions.md`](template/instructions.md) and
@@ -226,6 +246,7 @@ render per second of music for the video.
     ├── music_box_waltz/
     ├── church_passacaglia/
     ├── mozart_sonata_allegro/
+    ├── moonlight_storm/
     └── morning_forest_bundle/
         ├── README.md               full recipe, detailed enough to rebuild from alone
         ├── structure.json          bar/section map, script 01 → script 02
