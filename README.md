@@ -21,6 +21,7 @@ result is a finished music video.
 | [`avenger_beginning_song`](template/avenger_beginning_song/) | E minor | 88 BPM | 32 bars, 91.3 s | Heroic fanfare. Power chords, brass, orchestral percussion, no kit. |
 | [`music_box_waltz`](template/music_box_waltz/) | D dorian | 132 BPM | 40 bars, 58.6 s | Waltz in **3/4**. Inharmonic music box, accordion oom-pah-pah. |
 | [`church_passacaglia`](template/church_passacaglia/) | E phrygian | 80 BPM | 40 bars, 94.0 s | Baroque, pipe organ, **no percussion**. A ground bass, five times. |
+| [`mozart_sonata_allegro`](template/mozart_sonata_allegro/) | C minor | 138 BPM | 48 bars, 87.5 s | Classical piano, sonata form, Alberti bass. **Stereo.** |
 
 ### `moody_drums_bundle`
 
@@ -130,6 +131,25 @@ lists, with no decay, a breathy chiff on each attack, and a per-pipe detune. **N
 percussion at all** — which broke the visualizer's onset detector and taught the
 framework that a drumless piece has to take its pulse from the score instead.
 
+### `mozart_sonata_allegro`
+
+The follow-up to the passacaglia, from the brief *"like Bach but Mozart — one of
+those conventional piano sonatas."* A quick opening movement, in C minor, in
+**sonata form** — the only form in the repo that argues rather than repeats. Its
+second subject is heard in E♭ major at bar 13 and again in C minor at bar 41:
+same tune, once bright and once dark, and everything else exists to make that
+reconciliation land.
+
+Four things separate Classical from Baroque and all four are here: one singing
+line over an **Alberti bass** instead of equal voices, four-bar phrases that
+breathe, and **written dynamics** — which a harpsichord physically cannot play,
+and which is why the piano replaced it.
+
+The **first stereo bundle**, panned by pitch. The fortepiano models real string
+inharmonicity (`fₙ = n·f₀·√(1+Bn²)`) with decay depending on both partial number
+and pitch. The visualizer plots the harmony's distance from home, so you can watch
+sonata form leave and come back.
+
 ## Making a new one
 
 Point Claude Code at [`template/instructions.md`](template/instructions.md) and
@@ -205,6 +225,7 @@ render per second of music for the video.
     ├── avenger_beginning_song/
     ├── music_box_waltz/
     ├── church_passacaglia/
+    ├── mozart_sonata_allegro/
     └── morning_forest_bundle/
         ├── README.md               full recipe, detailed enough to rebuild from alone
         ├── structure.json          bar/section map, script 01 → script 02

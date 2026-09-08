@@ -302,9 +302,12 @@ asks for something outside it.
 | **Vocals, singing, lyrics, spoken word** | Every sound is synthesized from arithmetic. There is no voice model and no sample library. This is the hard boundary. |
 | **Real recorded instruments** | Same reason. A "piano" here is an additive stack that resembles one; it is not a recording. |
 | **Reproducing an existing song** | Nothing is sampled or transcribed from recordings. "In the *style* of" is fine; "that song" is not. |
-| **Stereo, so far** | Every bundle is mono. Stereo is a legitimate extension (§3.5), just not built yet. |
 | **Anything but 1280×720 at 24 fps** | Fixed by §2.4. Changeable, but then it is a framework change, not a bundle. |
 | **Live or interactive playback** | The output is a file. |
+
+**Stereo is available** as of `mozart_sonata_allegro` — say so if you want it.
+Seven of the eight bundles are mono, which is fine for most things, but anything
+piano-like or ensemble-like benefits.
 
 **It is happiest with** pieces of roughly 45–120 seconds. Shorter works; much
 longer means either a lot of repetition or a lot of composing, and the render time
@@ -374,7 +377,11 @@ sample libraries. Every sound is arithmetic; every frame is drawn.
 - 4-track MIDI via `midiutil.MIDIFile(4)`: Pad ch0, Bass ch1, Lead ch2, Drums ch9.
   Program changes on tracks 0–2. Track roles can be renamed for a different
   arrangement, but keep it to four tracks on those channels.
-- Synthesis at `SR = 44100`, mono, written as int16.
+- Synthesis at `SR = 44100`, written as int16, **mono or stereo**. Stereo means
+  an output array of shape `(n, 2)`; pan with an equal-power law
+  (`L, R = cos(p·π/2), sin(p·π/2)`) and put `"channels": 2` in `structure.json`.
+  `mozart_sonata_allegro` pans by pitch, which is how a piano actually reaches a
+  listener. Every mono bundle stays valid — this is an option, not a migration.
 - Seeded RNG for any noise: `np.random.default_rng(3)` for drums. Do not use
   unseeded randomness anywhere.
 - Master chain, in this order: sum melodic voices → reverb the melodic sum only →
@@ -386,6 +393,9 @@ sample libraries. Every sound is arithmetic; every frame is drawn.
 
 - Reads `assets/<name>.wav` and `../structure.json`. Never re-derives BPM or bar
   positions from constants copied out of script 01.
+- **If the WAV is stereo, sum to mono for analysis** — an FFT of an interleaved
+  pair is not meaningful. Keep the stereo array around if you want to draw both
+  channels in the waveform strip, as `mozart_sonata_allegro` does.
 - 1280×720, 24 fps, `N = ceil(duration * 24)` frames, `hop = SR // FPS`.
 - Analysis, one FFT pass per frame (2048-point, Hann) feeding **both** the
   spectrum and the onset detector:
@@ -397,24 +407,35 @@ sample libraries. Every sound is arithmetic; every frame is drawn.
   sized by `rms` and `pulse`, impact ring, 32-line spectrum ring, drifting
   particles (`default_rng(7)`), bottom waveform strip, caption fading in/out over
   3 s. Their *colours, motion and extras* are yours to change; the element list is not.
-- **Where `pulse` comes from depends on whether the piece has percussion.** The
-  spectral-flux detector needs a transient. A drumless piece has none, so it fires
-  on noise-floor drift instead — `church_passacaglia` measured 585 onsets across
-  2256 frames, leaving the impact ring lit on 98% of them. Put `has_drums` in
+- **Where `pulse` comes from is a per-bundle decision.** The spectral-flux
+  detector only works on **discrete, separated transients**. Three cases, and the
+  framework originally assumed only the last:
+
+  | The audio has | Detector does | Take `pulse` from |
+  |---|---|---|
+  | **no transients** — organ, pads, strings | fires on noise-floor drift | the downbeat |
+  | **continuous transients** — any 8th/16th ostinato | **saturates**, never decays | the downbeat |
+  | **discrete, separated transients** — a drum kit | works | the onsets |
+
+  Both failures look identical on screen. Measured: `church_passacaglia` (organ,
+  starving) 585 onsets over 2256 frames, ring lit 98% of the time;
+  `mozart_sonata_allegro` (Alberti bass, saturating) 244 over 2100, lit 88%.
+
+  So state the answer rather than inferring it — put **`pulse_source`** in
   `structure.json` and branch:
 
   ```python
-  if struct.get("has_drums", True):
-      pulse = ...                                   # spectral flux, as usual
+  if struct.get("pulse_source", "onsets") == "downbeat":
+      pulse = np.exp(-(t_all % BAR_SEC) * 3.0)      # the event is in the score
   else:
-      pulse = np.exp(-(t_all % BAR_SEC) * 2.8)      # the downbeat, from the score
+      pulse = ...                                   # spectral flux, as usual
   ```
 
-  The general rule: **when the audio has no transient to detect, take the event
-  from the score.** `structure.json` knows where the bars are; the waveform does
-  not advertise them. Rebalance the orb too — a drumless piece wants `rms` to
-  carry it (`church_passacaglia` uses `82*rms` against `18*pulse`, roughly the
-  inverse of every other bundle).
+  **The general rule: when the audio will not tell you where the events are, the
+  score will.** `structure.json` knows where the bars are. Rebalance the orb too —
+  `church_passacaglia` uses `82*rms` against `18*pulse`, roughly the inverse of
+  every other bundle, and `mozart_sonata_allegro` drives it from the score's
+  written dynamics as well.
 - Frames piped as `rawvideo` into ffmpeg. No intermediate PNGs.
 - Encode: `libx264`, `yuv420p`, CRF 20, preset medium, AAC 192k, `-shortest`.
 
@@ -447,7 +468,9 @@ visualizer since `simple_bach_tune` reads them:
 | `bar_sec` | the visualizer needs to know which bar it is in |
 | `section_labels` | the on-screen section name; also forces you to give every section a job (§3.1) |
 | `chords` | one label per bar, for the chord readout and for the §5.2 per-bar test |
-| `has_drums` | `false` changes where the visualizer gets `pulse` from — see §2.4 |
+| `has_drums` | whether there is any percussion at all |
+| `pulse_source` | `"onsets"` or `"downbeat"` — which one is right is a real decision, see §2.4 |
+| `channels` | 1 or 2 |
 
 Add further keys freely — `beat_sec`, `section_transpose`, `peak_sec`,
 `drums_in_sec`, `variation_sec`, `notes`, `speed` all exist in the repo. **Any
@@ -1206,22 +1229,22 @@ scripts should be able to rebuild the piece from the README alone.**
 
 ## 8. Reference: what exists so far
 
-| | moody | optimistic | morning forest | simple bach | avenger | music box | church passacaglia |
-|---|---|---|---|---|---|---|---|
-| Meter | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 3/4 | 3/4 |
-| Key / mode | A minor | G → C | arch C–E | C major | E minor | D Dorian | **E Phrygian** |
-| Tempo | 68 | 104 | 112 | 72 | 88 | 132 | 80 |
-| Length | 60.5 s | 59.4 s | 89.7 s | 57.3 s | 91.3 s | 58.6 s | 94.0 s |
-| Main voice | additive pad | additive pad | Karplus-Strong | harpsichord | scooped brass | inharmonic bar | **pipe organ** |
-| Drums | half-time kit | backbeat kit | shaker kit | shaker/kick/rim | timpani/taiko | brushed waltz | **none** |
-| `pulse` from | onsets | onsets | onsets | onsets | onsets | onsets | **the downbeat** |
-| Reverb | 97–389 ×4 | 61–211 ×4 | 53–181 ×4 | 89–331 ×4 | 113–421 ×4 | 67–239 ×4 | **109–631 ×6** |
-| RMS | 0.175 | 0.176 | 0.145 | 0.205 | 0.132 | 0.138 | 0.182 |
-| Scene element | — | — | god-rays | tick ring | two-hand score | beat orbit | **accumulating rings** |
+| | moody | optimistic | morning forest | simple bach | avenger | music box | church passacaglia | mozart sonata |
+|---|---|---|---|---|---|---|---|---|
+| Meter | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 3/4 | 3/4 | 4/4 |
+| Key / mode | A minor | G → C | arch C–E | C major | E minor | D Dorian | E Phrygian | **C minor, sonata form** |
+| Tempo | 68 | 104 | 112 | 72 | 88 | 132 | 80 | 138 |
+| Length | 60.5 s | 59.4 s | 89.7 s | 57.3 s | 91.3 s | 58.6 s | 94.0 s | 87.5 s |
+| Channels | mono | mono | mono | mono | mono | mono | mono | **stereo** |
+| Main voice | additive pad | additive pad | Karplus-Strong | harpsichord | scooped brass | inharmonic bar | pipe organ | **fortepiano** |
+| Drums | half-time kit | backbeat kit | shaker kit | shaker/kick/rim | timpani/taiko | brushed waltz | none | none |
+| `pulse` from | onsets | onsets | onsets | onsets | onsets | onsets | downbeat (starved) | downbeat (saturated) |
+| Dynamics | fixed | fixed | fixed | fixed | fixed | fixed | fixed | **per bar, exported** |
+| RMS | 0.175 | 0.176 | 0.145 | 0.205 | 0.132 | 0.138 | 0.182 | 0.110 |
+| Scene element | — | — | god-rays | tick ring | two-hand score | beat orbit | accumulating rings | **tonal journey** |
 
 Folder naming: the first three are `<name>_bundle`, the rest are not, because
 those were the folder names requested. Follow whatever the user asks for.
 
-An eighth bundle should differ from **all seven**. Still untouched: **swing**,
-**stereo**, an **odd meter** (5/4, 7/8), and the modes **Lydian** and
-**Mixolydian**.
+A ninth bundle should differ from **all eight**. Still untouched: **swing**, an
+**odd meter** (5/4, 7/8), and the modes **Lydian** and **Mixolydian**.

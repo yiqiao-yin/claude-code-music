@@ -4,7 +4,7 @@ Guidance for Claude Code working in this repo.
 
 ## What this repo is
 
-Seven self-contained music-video "bundles", each generating a piece of music and an
+Eight self-contained music-video "bundles", each generating a piece of music and an
 audio-reactive video for it **entirely from code** — symbolic composition to MIDI,
 numerical synthesis in numpy, frame-by-frame rendering with Pillow, muxed by
 ffmpeg.
@@ -16,7 +16,7 @@ model, it is the wrong task for this repo.
 
 The work has two halves, and both matter:
 
-1. **The pieces.** Seven of them, deliberately unalike — see the table below.
+1. **The pieces.** Eight of them, deliberately unalike — see the table below.
 2. **The method.** [`template/instructions.md`](template/instructions.md) is the
    accumulated spec: how to take a brief, what must stay fixed, what should vary,
    how to verify, and every trap found so far. It grows with each bundle. Adding a
@@ -51,9 +51,10 @@ The short version:
 | `avenger_beginning_song` | 4/4 | E minor | 88 | 91.3 s | Two-hand score, brass, orchestral percussion, 4×/8× variants. |
 | `music_box_waltz` | **3/4** | **D Dorian** | 132 | 58.6 s | Inharmonic struck bar, oom-pah-pah, three-beat orbit. |
 | `church_passacaglia` | 3/4 | **E Phrygian** | 80 | 94.0 s | Pipe organ, **no percussion**, a ground bass five times over. |
+| `mozart_sonata_allegro` | 4/4 | C minor | 138 | 87.5 s | Classical piano, sonata form, Alberti bass. **First stereo bundle.** |
 
-Still untouched, for an eighth: swing, stereo, an odd meter (5/4, 7/8), and the
-modes Lydian and Mixolydian.
+Still untouched, for a ninth: swing, an odd meter (5/4, 7/8), and the modes
+Lydian and Mixolydian.
 
 ## Layout
 
@@ -66,7 +67,8 @@ template/
 ├── simple_bach_tune/
 ├── avenger_beginning_song/
 ├── music_box_waltz/
-└── church_passacaglia/
+├── church_passacaglia/
+└── mozart_sonata_allegro/
 ```
 
 Every bundle has the same shape:
@@ -92,9 +94,10 @@ Which to copy when starting a new one:
   (`make_4x.py` / `make_8x.py`).
 - **`music_box_waltz`** — anything not in 4/4, a modal harmonisation, or
   inharmonic struck-bar voices.
-- **`church_passacaglia`** — a **drumless** piece (its visualizer takes `pulse`
-  from the downbeat, not the onset detector), organ or any sustained voice, or
-  variations over a fixed ground.
+- **`church_passacaglia`** — a **drumless** piece, organ or any sustained voice,
+  or variations over a fixed ground.
+- **`mozart_sonata_allegro`** — **stereo**, written dynamics, piano or any struck
+  string, or a form that modulates and returns.
 - **`moody_drums_bundle`** — the original. Still the only bundle with no
   `structure.json`, so its script 02 hard-codes its own caption. Prefer the others.
 
@@ -152,11 +155,12 @@ an absolute output path.
   `wavfile.read`; file MD5s differ across scipy versions over optional RIFF chunks.
 - **Seeded RNG everywhere** — `default_rng(3)` for audio, `default_rng(7)` for
   video particles. Never unseeded.
-- **A drumless piece breaks the onset detector.** With no transient it fires on
-  noise-floor drift — 585 hits across 2256 frames in `church_passacaglia`, leaving
-  the impact ring lit 98% of the time. Set `has_drums: false` and take `pulse`
-  from the downbeat instead. General rule: when the audio has no transient, the
-  event lives in the score.
+- **The onset detector only works on discrete, *separated* transients.** With
+  none it fires on noise (`church_passacaglia`: 585 hits, ring lit 98%); with
+  continuous ones it saturates (`mozart_sonata_allegro`: an Alberti attack every
+  217 ms, lit 88%). Both look identical on screen. Set `pulse_source` in
+  `structure.json` rather than inferring from `has_drums`. General rule: **when
+  the audio won't tell you where the events are, the score will.**
 
 **On the repo**
 
