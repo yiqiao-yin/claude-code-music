@@ -4,7 +4,7 @@ Guidance for Claude Code working in this repo.
 
 ## What this repo is
 
-Six self-contained music-video "bundles", each generating a piece of music and an
+Seven self-contained music-video "bundles", each generating a piece of music and an
 audio-reactive video for it **entirely from code** — symbolic composition to MIDI,
 numerical synthesis in numpy, frame-by-frame rendering with Pillow, muxed by
 ffmpeg.
@@ -50,9 +50,10 @@ The short version:
 | `simple_bach_tune` | 4/4 | C major | 72 | 57.3 s | 16th-note figure, harpsichord, all white keys. |
 | `avenger_beginning_song` | 4/4 | E minor | 88 | 91.3 s | Two-hand score, brass, orchestral percussion, 4×/8× variants. |
 | `music_box_waltz` | **3/4** | **D Dorian** | 132 | 58.6 s | Inharmonic struck bar, oom-pah-pah, three-beat orbit. |
+| `church_passacaglia` | 3/4 | **E Phrygian** | 80 | 94.0 s | Pipe organ, **no percussion**, a ground bass five times over. |
 
-Still untouched, for a seventh: a drumless piece, swing, stereo, an odd meter
-(5/4, 7/8), and the modes Phrygian, Lydian and Mixolydian.
+Still untouched, for an eighth: swing, stereo, an odd meter (5/4, 7/8), and the
+modes Lydian and Mixolydian.
 
 ## Layout
 
@@ -64,7 +65,8 @@ template/
 ├── morning_forest_bundle/
 ├── simple_bach_tune/
 ├── avenger_beginning_song/
-└── music_box_waltz/
+├── music_box_waltz/
+└── church_passacaglia/
 ```
 
 Every bundle has the same shape:
@@ -90,6 +92,9 @@ Which to copy when starting a new one:
   (`make_4x.py` / `make_8x.py`).
 - **`music_box_waltz`** — anything not in 4/4, a modal harmonisation, or
   inharmonic struck-bar voices.
+- **`church_passacaglia`** — a **drumless** piece (its visualizer takes `pulse`
+  from the downbeat, not the onset detector), organ or any sustained voice, or
+  variations over a fixed ground.
 - **`moody_drums_bundle`** — the original. Still the only bundle with no
   `structure.json`, so its script 02 hard-codes its own caption. Prefer the others.
 
@@ -147,6 +152,11 @@ an absolute output path.
   `wavfile.read`; file MD5s differ across scipy versions over optional RIFF chunks.
 - **Seeded RNG everywhere** — `default_rng(3)` for audio, `default_rng(7)` for
   video particles. Never unseeded.
+- **A drumless piece breaks the onset detector.** With no transient it fires on
+  noise-floor drift — 585 hits across 2256 frames in `church_passacaglia`, leaving
+  the impact ring lit 98% of the time. Set `has_drums: false` and take `pulse`
+  from the downbeat instead. General rule: when the audio has no transient, the
+  event lives in the score.
 
 **On the repo**
 

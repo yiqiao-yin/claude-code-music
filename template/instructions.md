@@ -162,7 +162,7 @@ is a wasted one.
 | **Tempo and feel** | Derived from mood: brooding 55–75, reflective 76–95, upbeat 96–120, driving 121–145 |
 | **Length** | ~60 s. Go longer only when the form needs it — the five-section arch in `morning_forest_bundle` justifies its 90 s |
 | **Meter** | 4/4 |
-| **Drums?** | Yes. Say "no drums" for something ambient — the framework handles it, the visualizer just gets quieter |
+| **Drums?** | Yes. Say "no drums" for something ambient, baroque or orchestral — but set `has_drums: false` and re-read §2.4, because the visualizer has to be driven differently |
 | **Lead instrument character** | A voice from the §3.5 menu chosen to fit the mood |
 | **Video palette** | Derived from mood — cold purples for dark, warm golds for bright, etc. |
 | **Section count** | Whatever the form needs, usually 3–7 |
@@ -394,9 +394,27 @@ sample libraries. Every sound is arithmetic; every frame is drawn.
   - onsets from low-band (40–120 Hz) spectral flux, threshold = 9-frame moving
     average × 1.6 + 2% of max flux; `pulse[i] = 1.0` on onset else `0.78 * pulse[i-1]`
 - Scene elements, all of them present: background gradient, blurred central orb
-  sized by `rms` and `pulse`, kick ring, 32-line spectrum ring, drifting
+  sized by `rms` and `pulse`, impact ring, 32-line spectrum ring, drifting
   particles (`default_rng(7)`), bottom waveform strip, caption fading in/out over
   3 s. Their *colours, motion and extras* are yours to change; the element list is not.
+- **Where `pulse` comes from depends on whether the piece has percussion.** The
+  spectral-flux detector needs a transient. A drumless piece has none, so it fires
+  on noise-floor drift instead — `church_passacaglia` measured 585 onsets across
+  2256 frames, leaving the impact ring lit on 98% of them. Put `has_drums` in
+  `structure.json` and branch:
+
+  ```python
+  if struct.get("has_drums", True):
+      pulse = ...                                   # spectral flux, as usual
+  else:
+      pulse = np.exp(-(t_all % BAR_SEC) * 2.8)      # the downbeat, from the score
+  ```
+
+  The general rule: **when the audio has no transient to detect, take the event
+  from the score.** `structure.json` knows where the bars are; the waveform does
+  not advertise them. Rebalance the orb too — a drumless piece wants `rms` to
+  carry it (`church_passacaglia` uses `82*rms` against `18*pulse`, roughly the
+  inverse of every other bundle).
 - Frames piped as `rawvideo` into ffmpeg. No intermediate PNGs.
 - Encode: `libx264`, `yuv420p`, CRF 20, preset medium, AAC 192k, `-shortest`.
 
@@ -429,6 +447,7 @@ visualizer since `simple_bach_tune` reads them:
 | `bar_sec` | the visualizer needs to know which bar it is in |
 | `section_labels` | the on-screen section name; also forces you to give every section a job (§3.1) |
 | `chords` | one label per bar, for the chord readout and for the §5.2 per-bar test |
+| `has_drums` | `false` changes where the visualizer gets `pulse` from — see §2.4 |
 
 Add further keys freely — `beat_sec`, `section_transpose`, `peak_sec`,
 `drums_in_sec`, `variation_sec`, `notes`, `speed` all exist in the repo. **Any
@@ -1187,24 +1206,22 @@ scripts should be able to rebuild the piece from the README alone.**
 
 ## 8. Reference: what exists so far
 
-| | moody | optimistic | morning forest | simple bach | avenger | music box waltz |
-|---|---|---|---|---|---|---|
-| Meter | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | **3/4** |
-| Key / mode | A minor | G → C major | C→D→C→E→C | C major | E minor | **D Dorian** |
-| Tempo | 68 | 104 | 112 | 72 | 88 | 132 |
-| Length | 60.5 s | 59.4 s | 89.7 s | 57.3 s | 91.3 s | 58.6 s |
-| Texture | sustained pad | sustained pad | 8th arpeggio | 16th figure | block hits | oom-pah-pah |
-| Lead voice | sine + 3rd | sine + 3rd | FM bell | harpsichord | scooped brass | inharmonic struck bar |
-| Bass | sine + 2nd | sine + 2nd | tanh-saturated | bowed, held | 8-harm + sub | soft low sine stack |
-| Drums | half-time kit | backbeat kit | shaker kit | shaker/kick/rim | timpani/taiko, no kit | brushed waltz kit |
-| Reverb | 97–389, lp 3500 | 61–211, lp 4500 | 53–181, lp 6000 | 89–331, lp 4000 | 113–421, lp 3200 | 67–239, lp 5200 |
-| RMS | 0.175 | 0.176 | 0.145 | 0.205 | 0.132 | 0.138 |
-| Extra scene element | — | — | god-rays | bar tick ring | two-hand score | three-beat orbit |
-| Speed variants | — | — | — | — | 4× and 8× | — |
+| | moody | optimistic | morning forest | simple bach | avenger | music box | church passacaglia |
+|---|---|---|---|---|---|---|---|
+| Meter | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | 3/4 | 3/4 |
+| Key / mode | A minor | G → C | arch C–E | C major | E minor | D Dorian | **E Phrygian** |
+| Tempo | 68 | 104 | 112 | 72 | 88 | 132 | 80 |
+| Length | 60.5 s | 59.4 s | 89.7 s | 57.3 s | 91.3 s | 58.6 s | 94.0 s |
+| Main voice | additive pad | additive pad | Karplus-Strong | harpsichord | scooped brass | inharmonic bar | **pipe organ** |
+| Drums | half-time kit | backbeat kit | shaker kit | shaker/kick/rim | timpani/taiko | brushed waltz | **none** |
+| `pulse` from | onsets | onsets | onsets | onsets | onsets | onsets | **the downbeat** |
+| Reverb | 97–389 ×4 | 61–211 ×4 | 53–181 ×4 | 89–331 ×4 | 113–421 ×4 | 67–239 ×4 | **109–631 ×6** |
+| RMS | 0.175 | 0.176 | 0.145 | 0.205 | 0.132 | 0.138 | 0.182 |
+| Scene element | — | — | god-rays | tick ring | two-hand score | beat orbit | **accumulating rings** |
 
 Folder naming: the first three are `<name>_bundle`, the rest are not, because
 those were the folder names requested. Follow whatever the user asks for.
 
-A seventh bundle should differ from **all six**. Still untouched: a **drumless**
-piece, **swing**, **stereo**, an odd meter (5/4, 7/8), and the modes Phrygian,
-Lydian and Mixolydian.
+An eighth bundle should differ from **all seven**. Still untouched: **swing**,
+**stereo**, an **odd meter** (5/4, 7/8), and the modes **Lydian** and
+**Mixolydian**.

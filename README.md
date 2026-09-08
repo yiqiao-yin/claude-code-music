@@ -20,6 +20,7 @@ result is a finished music video.
 | [`simple_bach_tune`](template/simple_bach_tune/) | C major | 72 BPM | 16 bars, 57.3 s | Baroque. The Prelude in C figure in 16ths, harpsichord, all white keys. |
 | [`avenger_beginning_song`](template/avenger_beginning_song/) | E minor | 88 BPM | 32 bars, 91.3 s | Heroic fanfare. Power chords, brass, orchestral percussion, no kit. |
 | [`music_box_waltz`](template/music_box_waltz/) | D dorian | 132 BPM | 40 bars, 58.6 s | Waltz in **3/4**. Inharmonic music box, accordion oom-pah-pah. |
+| [`church_passacaglia`](template/church_passacaglia/) | E phrygian | 80 BPM | 40 bars, 94.0 s | Baroque, pipe organ, **no percussion**. A ground bass, five times. |
 
 ### `moody_drums_bundle`
 
@@ -111,6 +112,24 @@ three beat markers orbiting the centre, one full turn per bar, so you can count
 
 The repo's first piece in a meter other than 4/4, and its first in a church mode.
 
+### `church_passacaglia`
+
+Built from a deliberately vague brief — *"baroque style music like Bach, typically
+played by harpsichord, in church or something"* — by someone who couldn't write
+notes down. Three questions with concrete options turned it into a piece; it is
+the clearest worked example of how the interview is meant to go.
+
+An 8-bar ground bass in **E Phrygian**, repeated five times without variation
+while the music above it accumulates: pedal alone, then chords, then a melody,
+then running figuration, then full organ. The mode follows from the form — a
+passacaglia's classic ground is a descending tetrachord, and that descent *is*
+Phrygian.
+
+Everything is one pipe-organ voice under four registrations built from real stop
+lists, with no decay, a breathy chiff on each attack, and a per-pipe detune. **No
+percussion at all** — which broke the visualizer's onset detector and taught the
+framework that a drumless piece has to take its pulse from the score instead.
+
 ## Making a new one
 
 Point Claude Code at [`template/instructions.md`](template/instructions.md) and
@@ -185,6 +204,7 @@ render per second of music for the video.
     ├── simple_bach_tune/
     ├── avenger_beginning_song/
     ├── music_box_waltz/
+    ├── church_passacaglia/
     └── morning_forest_bundle/
         ├── README.md               full recipe, detailed enough to rebuild from alone
         ├── structure.json          bar/section map, script 01 → script 02
