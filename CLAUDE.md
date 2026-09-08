@@ -16,7 +16,7 @@ model, it is the wrong task for this repo.
 
 The work has two halves, and both matter:
 
-1. **The pieces.** Six of them, deliberately unalike — see the table below.
+1. **The pieces.** Seven of them, deliberately unalike — see the table below.
 2. **The method.** [`template/instructions.md`](template/instructions.md) is the
    accumulated spec: how to take a brief, what must stay fixed, what should vary,
    how to verify, and every trap found so far. It grows with each bundle. Adding a
