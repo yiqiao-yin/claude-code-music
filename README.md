@@ -7,7 +7,8 @@ Python. Symbolic composition to MIDI, numerical synthesis in numpy, audio-reacti
 video drawn frame by frame with Pillow. **No AI audio or video models, no sample
 libraries.** Every sound is arithmetic; every frame is drawn.
 
-You describe a mood in a sentence; the result is a finished music video.
+You describe what you want — a mood in a sentence, or the actual notes — and the
+result is a finished music video.
 
 ## The bundles
 
@@ -113,11 +114,15 @@ The repo's first piece in a meter other than 4/4, and its first in a church mode
 ## Making a new one
 
 Point Claude Code at [`template/instructions.md`](template/instructions.md) and
-say what you want — even just "create a new music video." It will ask you three
-questions, default everything else, build the bundle, verify it, and hand you
+say what you want — even just "create a new music video." It asks a short batch of
+questions, defaults everything else, builds the bundle, verifies it, and hands you
 the `.mp4`.
 
-The three questions, because nothing sensible can be guessed for them:
+**Which questions depends on what you brought.**
+
+### If you have a mood but no notes
+
+Three questions, because nothing sensible can be guessed for them:
 
 1. **Mood or genre, in your own words.** One sentence. "Nocturnal jazz, smoky bar,
    brushes not sticks." "Driving and mechanical, like a train at night."
@@ -126,9 +131,32 @@ The three questions, because nothing sensible can be guessed for them:
 3. **Does the harmony go anywhere?** Just loop, one key change, a gradual
    darkening, a build and release, a false ending?
 
-`instructions.md` also holds the invariant framework contract, a menu of what
-should vary between bundles (modes, forms, 11 drop-in synth voices, drum feels,
-reverb, palettes), the build procedure, and the verification a bundle must pass.
+### If you have the notes
+
+Write them as `NOTE:BEATS`, one bar per line, and make each line add up to a bar:
+
+```
+E4:1.5 F4:0.5 E4:1        <- 3 beats: a bar of 3/4
+G4:2 G4:1                 <- 3
+```
+
+`E4` on its own means one beat; `R:1` is a rest; `[E4 G4 B4]:2` is a chord. That
+last rule — every line sums to a bar — catches your own typos before anyone else
+sees them, and it's how the meter gets settled without discussion. This is how
+`music_box_waltz` was written.
+
+If you give pitches but no rhythm, the questions become rhythm, form and
+orchestration instead — that's how `avenger_beginning_song` was built, from a
+two-handed keyboard layout with no durations at all.
+
+### What else is in there
+
+`instructions.md` holds the invariant framework contract, a menu of what should
+vary between bundles (modes, meters, 11 drop-in synth voices, drum feels, reverb,
+palettes), patterns for growing short material into a full piece, how to render
+speed variants without wrecking the pitch, the build procedure, and the
+verification every bundle has to pass. It grows with each piece — every bundle so
+far has taught it at least one thing.
 
 ## Running a bundle
 

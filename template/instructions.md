@@ -12,22 +12,27 @@ The *music* should change a lot. Section 3 is the menu of things to change;
 section 2 is the list of things not to.
 
 **To use it:** point Claude Code at this file and say what you want — even just
-"create a new music video." Claude asks you the three questions in §1.1, fills
-every other gap with a default, builds the bundle, verifies it against §5, and
-reports back.
+"create a new music video." Claude works out what kind of brief it is (§1.0),
+asks the few questions that fit, fills every other gap with a default, builds the
+bundle, verifies it against §5, and reports back.
 
 > **Claude — read this before doing anything else.**
 >
-> When someone asks for a new music video, a new bundle, or another track, and
-> has not already answered the three questions in §1.1: **stop and ask them.**
-> Ask all of the unanswered ones in a single batch, never one at a time. Offer
-> the concrete options listed under each question rather than an open prompt —
-> most people cannot answer "what mode do you want?" cold, but they can pick from
-> a list, and they will happily correct a suggestion.
+> When someone asks for a new music video, a new bundle, or another track:
+> **first work out which kind of brief it is (§1.0)**, because that decides what
+> to ask. A mood-only brief needs the three questions in §1.1. A brief that
+> supplies notes needs the completely different questions in §1.6.
+>
+> Then, if the relevant questions are unanswered: **stop and ask them.** Ask all
+> of them in a single batch, never one at a time. Offer the concrete options
+> listed under each question rather than an open prompt — most people cannot
+> answer "what mode do you want?" cold, but they can pick from a list, and they
+> will happily correct a suggestion.
 >
 > Rules for that exchange:
-> - Ask **only** the §1.1 questions. Everything in §1.2 has a default; do not ask
->   about it unless the answer would change the whole piece.
+> - Ask **only** the questions for the brief type you are in. Everything in §1.2
+>   has a default; do not ask about it unless the answer would change the piece.
+> - **Never ask a question the user already answered by writing the notes down.**
 > - Three questions is the target. Six is the absolute ceiling, and you should
 >   never need it.
 > - "You pick" is a valid answer to any of them. Take it, choose something that
@@ -43,6 +48,31 @@ reports back.
 ---
 
 ## 1. The brief — what I need from you
+
+### 1.0 First: which kind of brief is this?
+
+Briefs arrive in three shapes and **they need different questions.** Asking "what
+mood, what key, where does the harmony go?" of someone who has just handed you a
+two-handed keyboard score is tone-deaf — they answered all of that by writing the
+notes down. Work out which row you are in before opening your mouth.
+
+| The user gave you | Then | Ask about |
+|---|---|---|
+| **A mood, a scene, a genre** — no notes | §1.1 | mood, key/mode, harmonic arc |
+| **Notes, but no timing** — pitches, chords, a keyboard layout | §1.6 | rhythm, form, orchestration |
+| **A complete score** — notes *and* durations | §1.6 | almost nothing; make the calls and say what you chose |
+
+Real examples from this repo:
+
+- *"Happy and clear and full of hope… like walking into a forest in the morning"*
+  → type A. `morning_forest_bundle`.
+- *A full two-handed layout, left hand E2+B2, right hand E4 G4 B4, three sections*
+  → type B. Every pitch was given, no durations at all. `avenger_beginning_song`.
+- *`E4:1.5 F4:0.5 E4:1 | G4:2 G4:1 | …`* → type C. `music_box_waltz`.
+
+A brief can be mixed. `simple_bach_tune` gave the figure and the root motion
+(type B) but nothing about drums or length, so it needed both a rhythm question
+and a genre question.
 
 ### 1.1 The three that matter
 
@@ -184,6 +214,74 @@ stated as assumptions, which you can correct after hearing it.
 Register and voicing choices, exact chord spellings, reverb tap times, particle
 counts, envelope times, FFT settings, ffmpeg flags. Those are mine unless you
 have an opinion.
+
+### 1.6 Working from notes the user supplied
+
+This is brief type B or C from §1.0. The rules change completely.
+
+**The supplied notes are sacred.** Reproduce every pitch exactly as written. If
+something looks wrong — an octave that breaks a pattern, a chord label that does
+not match its notes — *say so and ask*, do not silently correct it. Two real
+cases:
+
+- `simple_bach_tune`: the user's figure from B3 spelled B–D–G, a first-inversion
+  G **triad**, but the agreed label was G7/B. The notes were kept and the label
+  was corrected, with the seventh saved for the real cadence.
+- `avenger_beginning_song`: an `E3` appeared in an otherwise `E4`-register line.
+  It was flagged as a question rather than assumed to be a typo.
+
+#### The `NOTE:BEATS` convention
+
+Teach the user this the moment timing gets ambiguous. It converts a vague
+description into an exact score, and it is easy to type in a chat window.
+
+```
+NOTE:BEATS   separated by spaces, one bar per line
+```
+
+| Write | Means |
+|---|---|
+| `E4:1` | one beat |
+| `E4:0.5` | half a beat |
+| `E4:0.25` | a sixteenth |
+| `E4:2` | two beats |
+| `E4:1.5` | dotted |
+| `R:1` | a rest |
+| `[E4 G4 B4]:2` | a chord |
+| `E4` | bare note = one beat |
+
+**The rule that does the work: every line must sum to one bar.** Three in 3/4,
+four in 4/4. Check it before anything else — it catches transcription errors for
+free and it is how you confirm the meter without asking.
+
+Note that whether a "beat" is a quarter or an eighth only changes the *tempo*,
+not the tune: the ratios are identical either way. A rhythm given in this form is
+never ambiguous, only its absolute pulse is.
+
+#### Two-handed keyboard layouts
+
+`avenger_beginning_song` arrived as prose: left hand, right hand, section by
+section. Model it as a list of bars, each `(left hand, right-hand events, melody,
+label)`, with the right-hand events carrying their own beat offsets so a pickup
+note can sit mid-bar. Keep the hands on separate MIDI tracks. Power chords with
+no third are a real voicing choice, not an omission — do not "helpfully" add the
+third.
+
+#### What to ask
+
+For **type B** (notes, no timing), the three questions are:
+
+1. **Rhythm and feel** — offer concrete options with a beat grid, not an open
+   question. Most people cannot describe a rhythm but can pick one.
+2. **Form and length** — supplied material is almost always shorter than a piece.
+   Count it: at the likely tempo, how many seconds is it? Then offer ways to grow
+   it (§3.1).
+3. **Orchestration** — what is actually playing. "Add drums" needs to become a
+   specific kit.
+
+For **type C** (a complete score), ask nothing about the music. Choose key, mood
+and orchestration yourself and **state every choice with its reason**. If the user
+said "take it from here", that is an explicit instruction to decide.
 
 ---
 
@@ -371,6 +469,17 @@ This is where a new bundle earns its existence. Changing only the key and tempo
 gets you a remix, not a new piece. **Aim to change at least one thing from every
 subsection below.**
 
+Two rules that have held across all six bundles, and are worth keeping:
+
+- **At least one synth voice must be new.** Not a re-tuning of an existing one — a
+  different synthesis method. The six so far: additive pad, Karplus-Strong pluck,
+  FM bell, additive harpsichord, scooped brass, inharmonic struck bar.
+- **Exactly one new scene element.** God-rays, a bar tick ring, a scrolling
+  two-hand score, a three-beat orbit. One per bundle keeps them distinguishable;
+  more than one and the frame gets busy. Choose it to show something about *this*
+  piece that the standard elements cannot — the orbit exists because 3/4 needed to
+  be countable on screen.
+
 ### 3.1 Structure, tempo, meter
 
 Total seconds `= bars * beats_per_bar * 60 / bpm + tail`. Tail is 4 s.
@@ -389,6 +498,37 @@ matching drum pattern — nothing else in the framework assumes 4.
 Represent the form as a `SECTIONS` list of `(chords, bass, melody_transpose)`
 tuples, as the optimistic bundle does. It makes key changes and section swaps a
 one-line edit.
+
+#### Developing short material into a piece
+
+Supplied material is almost always shorter than a piece. Do the arithmetic first —
+`bars × beats_per_bar × 60 / bpm` — and say the number out loud before choosing
+how to grow it. Eight bars of 3/4 at 132 BPM is eleven seconds.
+
+Seven patterns, all used in this repo. Combine two or three; do not use one alone
+for a whole piece.
+
+| Pattern | What it does | Used in |
+|---|---|---|
+| **Restate with weight** | same material again, sub-octaves added, percussion fuller | `avenger` bars 15–28 |
+| **Stage the arrangement** | parts enter one at a time rather than all at once | `music_box_waltz` (shaker bar 1, kit bar 13), `morning_forest` |
+| **Register shift** | restate an octave up or down | `music_box_waltz` variation |
+| **Transpose the cycle** | move the whole cycle to a new key each pass | `optimistic`, `morning_forest` arch |
+| **Extend the harmony** | keep the figure, continue the progression somewhere new | `simple_bach_tune`'s descending-fifths chains |
+| **Frame it** | an intro and a coda that are not in the source material | `music_box_waltz` |
+| **Add a counter-line** | a second voice appearing only in a repeat | `music_box_waltz` variation |
+
+Two things that matter more than which patterns you pick:
+
+**Put the resolution at the end, once.** `avenger`'s brief ended each pass with a
+descending run; playing it twice would have resolved the piece twice. It was moved
+to after the restatement — which worked because the preceding bar's Am/D leads
+straight back to E minor. Look for that kind of seam before you rearrange.
+
+**Give every section a job.** If you cannot say in four words what a section is
+for — "the tune, bare", "the lift", "the payoff", "settling home" — it is padding.
+Those four-word answers become `section_labels` in `structure.json` and the
+on-screen readout, so writing them down is not busywork.
 
 ### 3.2 Harmony
 
@@ -421,17 +561,8 @@ it deliberately — 0 for a hard block-chord attack, 0.15+ for a harp roll.
 
 ### 3.3 Melody
 
-**When a user supplies a melody**, ask them for `NOTE:BEATS` pairs, one bar per
-line, and check that every line sums to the beats in a bar before you do anything
-else. That single check catches most transcription errors for free, and it turns a
-vague description into an exact score:
-
-```
-E4:1.5 F4:0.5 E4:1        <- 3 beats, a bar of 3/4
-G4:2 G4:1                 <- 3
-```
-
-Bare notes default to one beat; `R:1` is a rest; `[E4 G4 B4]:2` is a chord.
+**When the user supplies the melody**, see §1.6 for the `NOTE:BEATS` convention
+and the rules around it.
 
 **A melody with a missing scale degree is an opportunity, not a gap.** The tune in
 `music_box_waltz` uses only C D E F G — no sixth at all — so it cannot say whether
@@ -644,9 +775,14 @@ this repo. Read the source you're copying before you edit it.
 
 Then:
 
-1. **Collect the brief.** Ask the §1.1 questions in one batch. Restate the full
-   spec back, including every default you're assuming, before writing code.
-2. **Write the material first.** Chords, bass, melody, drum pattern as constants.
+1. **Triage the brief (§1.0), then collect it.** Work out whether you were given
+   a mood, some notes, or a whole score, and ask the questions that fit — §1.1 for
+   the first, §1.6 for the other two, in one batch. Restate the full spec back,
+   including every default you're assuming, before writing code.
+2. **Do the arithmetic on length.** `bars × beats_per_bar × 60 / bpm`. If the
+   supplied material is shorter than the target, choose development patterns from
+   §3.1 and give every section a job before writing any notes down.
+3. **Write the material first.** Chords, bass, melody, drum pattern as constants.
    Then check, on paper, before running anything:
    - every melody note against the chord under it — **in every section**, not just
      the untransposed one. If a section's bar 8 is a pivot chord that does not
@@ -656,15 +792,15 @@ Then:
    - every part's register is sane for the voice you picked, and bass lines are
      re-voiced by hand rather than transposed
    - no two simultaneous parts on the same MIDI channel ever share a pitch (§7)
-3. **Write `scripts/01_make_music.py`.** Run it. Check §5.1.
-4. **Write `scripts/02_make_video.py`.** Run it — budget ~1.3 s of render per
+4. **Write `scripts/01_make_music.py`.** Run it. Check §5.1.
+5. **Write `scripts/02_make_video.py`.** Run it — budget ~1.3 s of render per
    second of music, so a 90 s piece takes about 2 minutes.
-5. **Verify** with §5, all of it, including looking at the extracted frames.
-6. **Write `README.md`** to the §6 outline, with the real measured numbers from
+6. **Verify** with §5, all of it, including looking at the extracted frames.
+7. **Write `README.md`** to the §6 outline, with the real measured numbers from
    step 5 — never numbers you expected to get.
-7. **Update the repo README** and the §8 comparison table in this file.
-8. **Commit and push.**
-9. **Send the user the `.mp4`.** They asked for a music video; a git commit is not
+8. **Update the repo README** and the §8 comparison table in this file.
+9. **Commit and push.**
+10. **Send the user the `.mp4`.** They asked for a music video; a git commit is not
    one. Deliver the file, and say where the structural events land in
    minutes:seconds so they know what to listen for.
 
@@ -690,10 +826,13 @@ print('dur %.2fs  peak %.3f  rms %.4f' % (len(a)/sr, np.abs(a).max(), np.sqrt((a
 ### 5.2 The key is what you say it is
 
 Do not skip this. It catches transposition errors, wrong voicings, and melodies
-that are in a different key from their chords.
+in a different key from their chords. Run both tests, **per-bar first** — it is
+the decisive one, and it localises a problem instead of just reporting it.
 
-Run it from the bundle root. The windows come from `structure.json`, so it works
-unchanged for any number of sections:
+#### The per-bar test — run this first
+
+Compare each bar's top three pitch classes against that bar's chord tones, over
+roughly **70–1200 Hz where fundamentals dominate**.
 
 ```bash
 python3 -c "
@@ -703,63 +842,91 @@ name = 'NAME'
 st = json.load(open('structure.json'))
 sr, a = wavfile.read('assets/%s.wav' % name); a = a.astype(np.float32)/32767
 names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
-def chroma(seg):
+TONES = {'Dm':'D F A', 'G':'G B D', 'Am':'A C E', 'F':'F A C', 'C':'C E G'}  # your chords
+bar, bad = st['bar_sec'], 0
+for b in range(st['bars']):
+    label = st['chords'][b]
+    if label not in TONES:
+        print('bar %2d %-6s (no chord tones listed, skipped)' % (b+1, label)); continue
+    seg = a[int((b*bar+0.25)*sr):int(((b+1)*bar-0.15)*sr)]
     mag = np.abs(np.fft.rfft(seg*np.hanning(len(seg)))); f = np.fft.rfftfreq(len(seg), 1/sr)
-    ok = (f>60)&(f<2000); pc = np.zeros(12)
+    ok = (f>70)&(f<1200); pc = np.zeros(12)
+    np.add.at(pc, np.round(69+12*np.log2(np.maximum(f[ok],1e-9)/440)).astype(int)%12, mag[ok])
+    top3 = [names[j] for j in np.argsort(pc)[::-1][:3]]
+    hit = sum(x in set(TONES[label].split()) for x in top3)
+    bad += hit < 2
+    print('bar %2d %-6s want %-9s top3 %-12s %s' % (b+1, label, TONES[label],
+          ' '.join(top3), '' if hit >= 2 else '<-- MISMATCH'))
+print('bars failing the >=2-of-3 rule: %d / %d' % (bad, st['bars']))
+"
+```
+
+**At least two of the top three should be chord tones in every bar.** Where the
+harmony is simple, expect all three: `simple_bach_tune` scored 16/16 bars exactly,
+`music_box_waltz` 40/40, `avenger_beginning_song` 32/32 on its bass roots.
+
+This test found the vibrato bug. Bars 1–4 were clean and bars 5–16 were not, which
+pointed straight at the voice that enters at bar 5 — something a whole-section
+average would have smeared away.
+
+#### The section test
+
+Broader, and the right check for whether a modulation actually happened.
+
+```bash
+python3 -c "
+import json, numpy as np
+from scipy.io import wavfile
+name = 'NAME'
+st = json.load(open('structure.json'))
+sr, a = wavfile.read('assets/%s.wav' % name); a = a.astype(np.float32)/32767
+names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']
+def chroma(seg, lo=70, hi=1200):
+    mag = np.abs(np.fft.rfft(seg*np.hanning(len(seg)))); f = np.fft.rfftfreq(len(seg), 1/sr)
+    ok = (f>lo)&(f<hi); pc = np.zeros(12)
     np.add.at(pc, np.round(69+12*np.log2(np.maximum(f[ok],1e-9)/440)).astype(int)%12, mag[ok])
     return pc/pc.sum()
 starts = st['section_starts_sec'] + [st['duration_sec'] - 4]
 keys = st.get('section_keys', ['?'] * (len(starts)-1))
 for i in range(len(starts)-1):
-    s, e = starts[i] + 2, starts[i+1] - 1          # trim the modulation edges
-    c = chroma(a[int(s*sr):int(e*sr)])
+    c = chroma(a[int((starts[i]+2)*sr):int((starts[i+1]-1)*sr)])
     top = np.argsort(c)[::-1][:5]
     print('%-2d %-10s %s' % (i+1, keys[i], ' '.join('%s:%.3f'%(names[j], c[j]) for j in top)))
 "
 ```
 
-Read the output against three rules:
+Read it against three rules:
 
-- **The tonic ranks first or second.** Second is common and fine — a cycle that
-  leans on its dominant will put the fifth on top.
-- **Every pitch class in the top five is diatonic to that section's key.** This is
-  the rule that actually catches bugs. An F♯ in a C major section means a
-  transposition went somewhere it shouldn't — *unless* the piece uses a
-  harmonically rich voice, in which case see the caveat below.
+- **The tonic ranks first or second.** Second is common and fine — a cycle leaning
+  on its dominant puts the fifth on top. `avenger_beginning_song` shows B first
+  throughout because B is the fifth of the tonic power chord.
+- **Every pitch class in the top five is diatonic to that section's key.**
 - **If the piece modulates, the sections differ.** Identical chroma across a
   claimed key change means the transposition never happened.
 
-**Two caveats, both learned the hard way on `simple_bach_tune`.**
+#### Three ways this test lies
 
-*Bright timbres put notes in the chroma that were never played.* The fifth
-harmonic of any pitch is a major third two octaves up, and the seventh is a minor
-seventh; a voice with a slow harmonic rolloff therefore shows the major third of
-whatever it plays. A piece that is entirely white keys reported an F♯, purely
-because D was prominent. If the top band looks wrong, **narrow the analysis to
-roughly 70–1200 Hz where fundamentals dominate** and check again before believing
-it.
+Every one of these produced a false alarm in this repo. **A flagged note is a
+hypothesis, not a verdict.**
 
-*So does swept and inharmonic percussion.* A pitch-sweeping kick or taiko smears
-energy across every bin it passes through, and drums with deliberately inharmonic
-partials — a timpani's 2.1× mode, say — land wherever they land.
-`avenger_beginning_song` reported an A♯ that no part plays; re-rendering the
-section with the percussion muted removed it entirely. **When a stray pitch class
-survives the band narrowing, render once without percussion before concluding the
-notes are wrong.**
+1. **Bright timbres.** The fifth harmonic of any pitch is a major third two
+   octaves up and the seventh is a minor seventh, so a voice with a slow harmonic
+   rolloff shows the major third of whatever it plays. `simple_bach_tune` — every
+   note a white key — reported an F♯ purely because D was prominent.
+2. **Swept and inharmonic percussion.** A pitch-sweeping kick or taiko smears
+   energy across every bin it crosses, and drums with deliberately inharmonic
+   modes land wherever they land. `avenger_beginning_song` reported an A♯ no part
+   plays; `music_box_waltz`'s struck-bar modes (2.76, 5.40, 8.93) do the same.
+3. **Too wide an analysis band.** Anything above ~1200 Hz is mostly partials.
 
-*Analyse per bar when a phrase-level result is ambiguous.* Comparing each bar's
-top three pitch classes against that bar's chord is far more decisive than a
-ten-second window, and it localises the problem:
+The procedure when something is flagged:
 
-```python
-seg = a[int((b*bar_sec + 0.25)*sr):int(((b+1)*bar_sec - 0.15)*sr)]
-# ... chroma over 70-1200 Hz, then compare top-3 against the bar's chord tones
-```
-
-That is what found the vibrato bug in §7 — bars 1–4 were clean and bars 5–16 were
-not, which pointed straight at the voice that enters at bar 5. When a check
-flags something, **render A/B variants with one part muted at a time** rather than
-guessing which part is at fault.
+1. Narrow to 70–1200 Hz and re-run. Then narrow further, to fundamentals only.
+2. Check the score itself — the note list, not the audio. If the pitch is not
+   written anywhere, it is not being played.
+3. **Re-render with one part muted at a time.** This is decisive and cheap: it
+   cleared the drums and convicted the upper voice in `simple_bach_tune`, and did
+   the reverse in `avenger_beginning_song`. Do not guess which part is at fault.
 
 ### 5.3 Video
 
@@ -835,6 +1002,10 @@ scripts should be able to rebuild the piece from the README alone.**
 
 ## 7. Pitfalls, learned the hard way
 
+- **Never silently "fix" a note the user supplied.** If a pitch looks wrong — an
+  octave that breaks a pattern, a chord label that does not match its notes — flag
+  it and ask, or keep the notes and correct the label. Reproducing the brief
+  exactly is the job; improving it is not.
 - **Vibrato must integrate frequency to phase.** Writing
   `sin(2*pi * freq * vib * t)` where `vib` varies with `t` modulates *phase*, not
   frequency: the instantaneous frequency picks up a `t * dvib/dt` term that grows
@@ -848,7 +1019,8 @@ scripts should be able to rebuild the piece from the README alone.**
   sig += np.sin(phase) / h ** 1.1
   ```
 
-  Fixed in all four bundles as of the re-render. When measuring this yourself,
+  Fixed everywhere as of the re-render, and no bundle since has reintroduced it.
+  When measuring this yourself,
   isolate the **fundamental only** — a Hilbert instantaneous-frequency estimate is
   valid only for a single-component signal, and leaving a third harmonic in the
   test signal roughly doubles the apparent deviation.
