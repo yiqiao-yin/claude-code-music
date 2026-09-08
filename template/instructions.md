@@ -421,6 +421,25 @@ it deliberately — 0 for a hard block-chord attack, 0.15+ for a harp roll.
 
 ### 3.3 Melody
 
+**When a user supplies a melody**, ask them for `NOTE:BEATS` pairs, one bar per
+line, and check that every line sums to the beats in a bar before you do anything
+else. That single check catches most transcription errors for free, and it turns a
+vague description into an exact score:
+
+```
+E4:1.5 F4:0.5 E4:1        <- 3 beats, a bar of 3/4
+G4:2 G4:1                 <- 3
+```
+
+Bare notes default to one beat; `R:1` is a rest; `[E4 G4 B4]:2` is a chord.
+
+**A melody with a missing scale degree is an opportunity, not a gap.** The tune in
+`music_box_waltz` uses only C D E F G — no sixth at all — so it cannot say whether
+it is major, minor or modal, and the harmony decides what it means. Look at where
+the melody *ends* before choosing: that tune ends on D, so D Dorian makes the
+final note a tonic, where C major would have left it hanging on a second.
+
+
 The two bundles are deliberate opposites and show the mechanism:
 
 - **moody**: descending cells, long notes (2–3 beats), narrow range, lands on
@@ -872,25 +891,24 @@ scripts should be able to rebuild the piece from the README alone.**
 
 ## 8. Reference: what exists so far
 
-| | `moody_drums_bundle` | `optimistic_drums_bundle` | `morning_forest_bundle` | `simple_bach_tune` | `avenger_beginning_song` |
-|---|---|---|---|---|---|
-| Key | A minor | G → C at bar 17 | C→D→C→E→C | C major | E minor (+D♯) |
-| Tempo | 68 BPM | 104 BPM | 112 BPM | 72 BPM | 88 BPM |
-| Form | 16 bars, 60.5 s | 24 bars, 59.4 s | 40 bars, 89.7 s | 16 bars, 57.3 s | 32 bars, 91.3 s |
-| Texture | sustained pad | sustained pad | 8th arpeggio | 16th figure | block hits + silence |
-| Main voice | additive pad | additive pad | Karplus-Strong | harpsichord | scooped brass |
-| Lead | sine + 3rd | sine + 3rd | FM bell | bowed upper voice | horn doubling |
-| Bass | sine + 2nd | sine + 2nd | tanh-saturated | bowed, held | 8-harm + sine sub |
-| Drums | half-time kit | backbeat kit | shaker kit | shaker/kick/rim | timpani/taiko/cymbal, **no kit** |
-| Reverb | 97–389, lp 3500 | 61–211, lp 4500 | 53–181, lp 6000 | 89–331, lp 4000 | 113–421, lp 3200 |
-| RMS | 0.175 | 0.176 | 0.145 | 0.205 | 0.132 |
-| Palette | indigo/violet | dusk gold/teal | forest green/gold | candlelit slate | steel → gold |
-| Extra scene element | — | — | god-rays | bar tick ring | scrolling two-hand score |
-| Structural events | 0 | 1 | 4 | 3 | 6 |
+| | moody | optimistic | morning forest | simple bach | avenger | music box waltz |
+|---|---|---|---|---|---|---|
+| Meter | 4/4 | 4/4 | 4/4 | 4/4 | 4/4 | **3/4** |
+| Key / mode | A minor | G → C major | C→D→C→E→C | C major | E minor | **D Dorian** |
+| Tempo | 68 | 104 | 112 | 72 | 88 | 132 |
+| Length | 60.5 s | 59.4 s | 89.7 s | 57.3 s | 91.3 s | 58.6 s |
+| Texture | sustained pad | sustained pad | 8th arpeggio | 16th figure | block hits | oom-pah-pah |
+| Lead voice | sine + 3rd | sine + 3rd | FM bell | harpsichord | scooped brass | inharmonic struck bar |
+| Bass | sine + 2nd | sine + 2nd | tanh-saturated | bowed, held | 8-harm + sub | soft low sine stack |
+| Drums | half-time kit | backbeat kit | shaker kit | shaker/kick/rim | timpani/taiko, no kit | brushed waltz kit |
+| Reverb | 97–389, lp 3500 | 61–211, lp 4500 | 53–181, lp 6000 | 89–331, lp 4000 | 113–421, lp 3200 | 67–239, lp 5200 |
+| RMS | 0.175 | 0.176 | 0.145 | 0.205 | 0.132 | 0.138 |
+| Extra scene element | — | — | god-rays | bar tick ring | two-hand score | three-beat orbit |
+| Speed variants | — | — | — | — | 4× and 8× | — |
 
-Folder naming: the first three are `<name>_bundle`, the last two are not, because
+Folder naming: the first three are `<name>_bundle`, the rest are not, because
 those were the folder names requested. Follow whatever the user asks for.
 
-A sixth bundle should differ from **all five** — the axes still untouched are
-meter (everything so far is 4/4), a drumless piece, a genuinely modal colour
-(nothing yet uses Dorian, Phrygian, Lydian or Mixolydian), swing, and stereo.
+A seventh bundle should differ from **all six**. Still untouched: a **drumless**
+piece, **swing**, **stereo**, an odd meter (5/4, 7/8), and the modes Phrygian,
+Lydian and Mixolydian.

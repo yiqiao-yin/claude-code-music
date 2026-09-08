@@ -18,6 +18,7 @@ You describe a mood in a sentence; the result is a finished music video.
 | [`morning_forest_bundle`](template/morning_forest_bundle/) | C → D → C → E → C | 112 BPM | 40 bars, 89.7 s | Crisp and hopeful. A harmonic arch, arpeggio, god-rays. |
 | [`simple_bach_tune`](template/simple_bach_tune/) | C major | 72 BPM | 16 bars, 57.3 s | Baroque. The Prelude in C figure in 16ths, harpsichord, all white keys. |
 | [`avenger_beginning_song`](template/avenger_beginning_song/) | E minor | 88 BPM | 32 bars, 91.3 s | Heroic fanfare. Power chords, brass, orchestral percussion, no kit. |
+| [`music_box_waltz`](template/music_box_waltz/) | D dorian | 132 BPM | 40 bars, 58.6 s | Waltz in **3/4**. Inharmonic music box, accordion oom-pah-pah. |
 
 ### `moody_drums_bundle`
 
@@ -93,6 +94,22 @@ It also ships **4× and 8× renders** (`make_4x.py`, `make_8x.py`) — 22.8 s an
 pitch untouched, not playback speed-ups: resampling would have raised everything
 two or three octaves, and time-stretching would have smeared the brass attacks.
 
+### `music_box_waltz`
+
+A wistful waltz built on an 8-bar melody supplied note by note in 3/4. The tune
+uses only C D E F G — no sixth degree at all — so the melody alone cannot say
+whether it is major, minor or modal, and the harmony gets to decide. Harmonised
+in **D Dorian**: the tune ends on D, which becomes the tonic rather than a hanging
+second, and the G major chord supplies the raised sixth that makes it Dorian.
+
+The melody is played by an inharmonic struck-bar voice — a real music box's modes
+sit near 1.00, 2.76, 5.40 and 8.93, not at whole-number harmonics — over a detuned
+accordion playing oom-pah-pah and a light brushed waltz kit. The visualizer runs
+three beat markers orbiting the centre, one full turn per bar, so you can count
+1-2-3 off the screen.
+
+The repo's first piece in a meter other than 4/4, and its first in a church mode.
+
 ## Making a new one
 
 Point Claude Code at [`template/instructions.md`](template/instructions.md) and
@@ -139,6 +156,7 @@ render per second of music for the video.
     ├── optimistic_drums_bundle/
     ├── simple_bach_tune/
     ├── avenger_beginning_song/
+    ├── music_box_waltz/
     └── morning_forest_bundle/
         ├── README.md               full recipe, detailed enough to rebuild from alone
         ├── structure.json          bar/section map, script 01 → script 02

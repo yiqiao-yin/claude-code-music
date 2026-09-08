@@ -44,7 +44,8 @@ template/
 ├── optimistic_drums_bundle/     G → C, 104 BPM, 24 bars. The clean baseline.
 ├── morning_forest_bundle/       C → D → C → E → C, 112 BPM, 40 bars.
 ├── simple_bach_tune/            C major, 72 BPM, 16 bars. Baroque, 16th notes.
-└── avenger_beginning_song/      E minor, 88 BPM, 32 bars. Heroic fanfare.
+├── avenger_beginning_song/      E minor, 88 BPM, 32 bars. Heroic fanfare.
+└── music_box_waltz/             D dorian, 132 BPM, 40 bars. 3/4 waltz.
 ```
 
 Every bundle has the same shape:
@@ -67,7 +68,10 @@ Which to copy when building a new one:
 - **`simple_bach_tune`** — copy this for anything on a 16th-note grid.
 - **`avenger_beginning_song`** — copy this for brass or orchestral percussion, or
   when the visualizer should draw the score itself; it is the only bundle that
-  exports every note into `structure.json`.
+  exports every note into `structure.json`. It also carries the speed-variant
+  machinery (`make_4x.py` / `make_8x.py`).
+- **`music_box_waltz`** — copy this for anything not in 4/4, for a modal
+  harmonisation, or for inharmonic struck-bar voices.
 - **`moody_drums_bundle`** — the original. Paths and ffmpeg are now handled like
   the others, but it still has no `structure.json`, so its script 02 hard-codes
   its own caption. Prefer one of the three above.
