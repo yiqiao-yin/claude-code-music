@@ -1,10 +1,13 @@
 # How to build a new music-video bundle
 
-This file is the spec for creating another folder like
-[`moody_drums_bundle`](moody_drums_bundle/),
-[`optimistic_drums_bundle`](optimistic_drums_bundle/) or
-[`morning_forest_bundle`](morning_forest_bundle/). It is written to be read by
-Claude Code *and* by a human.
+This file is the spec for creating another folder alongside the six that exist —
+`moody_drums_bundle`, `optimistic_drums_bundle`, `morning_forest_bundle`,
+`simple_bach_tune`, `avenger_beginning_song` and `music_box_waltz`. It is written
+to be read by Claude Code *and* by a human.
+
+**It is the method, not the whole library.** The bundles are the code: §3.4 and
+§3.5 index every drum and synth voice that exists and say which folder to copy it
+from. Read this file for *how*; read the bundles for *what*.
 
 **The deal:** the framework never changes — same folder layout, same two scripts,
 same asset set, same pipeline (notes → code → audio → analysis → frames → video).
@@ -143,6 +146,7 @@ moody bundle deliberately has none — it broods in one place, which is the poin
 | **"One key change, dropping"** | Modulate down, or major → parallel minor. The floor falls out. |
 | **"Gradual darkening"** | Same key, but voicings descend, chords sour, drums thin out. Slow dread. |
 | **"Build and release"** | Sparse → full → sudden drop to near-silence → return. Dance-music shape. |
+| **"An arch"** | Up, back, higher, home — several keys in sequence. What morning forest does: C→D→C→E→C. |
 | **"Two contrasting sections"** | AABA. B in a different mode or register, then home. Song-like. |
 | **"False ending"** | Everything stops around 45 s, then one last phrase. Unsettling or tender. |
 | **"You pick"** | I'll choose something that fits the mood and tell you where the event lands. |
@@ -161,8 +165,11 @@ is a wasted one.
 | **Drums?** | Yes. Say "no drums" for something ambient — the framework handles it, the visualizer just gets quieter |
 | **Lead instrument character** | A voice from the §3.5 menu chosen to fit the mood |
 | **Video palette** | Derived from mood — cold purples for dark, warm golds for bright, etc. |
+| **Section count** | Whatever the form needs, usually 3–7 |
+| **Speed variants** | None. Ask if you want 4× or 8× renders (§3.6) |
+| **The new scene element** | Chosen to show something about this piece the standard elements can't (§3) |
 | **Caption text** | `"<name>  |  <key>, <bpm> BPM"` |
-| **Folder / file naming** | `template/<name>_bundle/`, assets named `<name>.*` |
+| **Folder / file naming** | A name derived from the mood. Say one and it is used verbatim — three of the six folders are not `_bundle` because that is what was asked for |
 
 ### 1.3 Copy-paste answer block
 
@@ -283,6 +290,48 @@ For **type C** (a complete score), ask nothing about the music. Choose key, mood
 and orchestration yourself and **state every choice with its reason**. If the user
 said "take it from here", that is an explicit instruction to decide.
 
+### 1.7 What this framework can and cannot do
+
+Worth knowing before you ask for something, and worth saying plainly if someone
+asks for something outside it.
+
+**It cannot:**
+
+| Not possible | Why |
+|---|---|
+| **Vocals, singing, lyrics, spoken word** | Every sound is synthesized from arithmetic. There is no voice model and no sample library. This is the hard boundary. |
+| **Real recorded instruments** | Same reason. A "piano" here is an additive stack that resembles one; it is not a recording. |
+| **Reproducing an existing song** | Nothing is sampled or transcribed from recordings. "In the *style* of" is fine; "that song" is not. |
+| **Stereo, so far** | Every bundle is mono. Stereo is a legitimate extension (§3.5), just not built yet. |
+| **Anything but 1280×720 at 24 fps** | Fixed by §2.4. Changeable, but then it is a framework change, not a bundle. |
+| **Live or interactive playback** | The output is a file. |
+
+**It is happiest with** pieces of roughly 45–120 seconds. Shorter works; much
+longer means either a lot of repetition or a lot of composing, and the render time
+grows with it.
+
+**Things you can ask for that the three questions don't cover.** Any of these will
+be decided for you if you stay quiet, but saying so is faster than correcting it:
+
+- **A specific instrument.** "Harpsichord", "brass", "music box", "accordion",
+  "plucked strings", "organ", "bells". §3.5 lists everything that exists and what
+  it sounds like.
+- **A reference to an existing bundle.** "Like the moody one but faster",
+  "the forest one's palette with the Bach one's rhythm". This is the highest
+  information-per-word input available — use it.
+- **No drums**, or a specific kit. "Orchestral percussion, no kit" produced
+  `avenger_beginning_song`; "brushes not sticks" is enough to pick a snare.
+- **A meter.** 3/4, 6/8, 5/4, 7/8. Only 4/4 and 3/4 exist so far.
+- **Length or section count.** "About 90 seconds", "four sections".
+- **A specific structural event and where it lands.** "Key change two-thirds in",
+  "everything drops out at 45 seconds".
+- **Speed variants.** 4× and 8× re-renders, pitch preserved (§3.6).
+- **The folder name.** Otherwise one is chosen from the mood.
+
+**What is always decided for you** unless you have an opinion: register and
+voicing, exact chord spellings, envelope and reverb parameters, particle counts,
+FFT settings, ffmpeg flags, and every number in the video. Those are in §1.5.
+
 ---
 
 ## 2. The invariant framework — do not change this
@@ -372,10 +421,23 @@ piece that stays in one key — or for a piece with several changes, where
 by the video script, but the §5.2 verification uses it to label its own output;
 without it you are eyeballing unlabelled numbers.
 
-Add extra keys freely (`section_transpose`, `peak_sec`, `drop_sec`,
-`build_start_sec`) — the video script is the only consumer. **Any musical event
-the visualizer should react to but the onset detector cannot find belongs in this
-file.**
+**Three more fields are effectively required in practice**, because every
+visualizer since `simple_bach_tune` reads them:
+
+| Field | Why |
+|---|---|
+| `bar_sec` | the visualizer needs to know which bar it is in |
+| `section_labels` | the on-screen section name; also forces you to give every section a job (§3.1) |
+| `chords` | one label per bar, for the chord readout and for the §5.2 per-bar test |
+
+Add further keys freely — `beat_sec`, `section_transpose`, `peak_sec`,
+`drums_in_sec`, `variation_sec`, `notes`, `speed` all exist in the repo. **Any
+musical event the visualizer should react to but the onset detector cannot find
+belongs in this file.**
+
+`notes` is worth knowing about: `avenger_beginning_song` exports every synthesized
+note as `[start_sec, dur_sec, midi, track]`, which is what lets its visualizer draw
+the score itself. Any bundle can do the same for a few lines of code.
 
 ### 2.6 Environment
 
@@ -571,7 +633,7 @@ the melody *ends* before choosing: that tune ends on D, so D Dorian makes the
 final note a tonic, where C major would have left it hanging on a second.
 
 
-The two bundles are deliberate opposites and show the mechanism:
+`moody` and `optimistic` are deliberate opposites and show the mechanism:
 
 - **moody**: descending cells, long notes (2–3 beats), narrow range, lands on
   chord tones — sounds like sighing
@@ -638,26 +700,98 @@ def tom(freq, dur=0.35):
     return np.sin(2*np.pi*np.cumsum(f)/SR)*np.exp(-t*8)
 ```
 
+**The drum library already in the repo.** Every one is either a swept sine, noise
+through a filter, or both. Copy rather than reinvent.
+
+| Voice | Made of | Lives in |
+|---|---|---|
+| `kick` | swept sine 150→45 Hz + noise click | moody, optimistic |
+| `kick_soft` | swept sine 120→44 Hz, no click | morning_forest, simple_bach |
+| `kick_felt` | swept sine 100→45 Hz, slower decay | music_box_waltz |
+| `snare` | band-passed noise + 190 Hz tone | moody, optimistic |
+| `snare_brush` / `brush` | band-passed noise, soft decay | morning_forest, music_box_waltz |
+| `rim` | 400 Hz sine + fast noise | morning_forest, simple_bach |
+| `hat` / `open_hat` | high-passed noise, fast / slow decay | moody, optimistic |
+| `shaker` | high-passed noise 9 kHz, very fast decay | morning_forest, simple_bach, music_box_waltz |
+| `taiko` | swept sine 141→46 Hz + low-passed thwack | avenger |
+| `timpani` | **pitched**, head relaxes 10% sharp → true, inharmonic 2.1× mode | avenger |
+| `cymbal` | high-passed noise with a **squared ramp up**, then decay — a swell that *lands* on the beat, not a crash | avenger |
+| `triangle` | inharmonic modes at 2100 Hz, long ring | music_box_waltz |
+
+Percussion does not have to keep time. In `avenger_beginning_song` it doubles the
+chord hits and there is no kit at all — no backbeat, no hats. That is a legitimate
+and under-used option.
+
 ### 3.5 Synth voices
 
-The biggest single lever on how a bundle *sounds*, and the most under-used.
-Swap at least one voice for every new bundle.
+The biggest single lever on how a bundle *sounds*. **At least one voice must be
+new in every bundle** — a different synthesis method, not a re-tuning.
 
-All of these are drop-in replacements for `pad_voice` / `lead_voice` / `bass_voice`
-and assume the `env`, `lowpass` and `rng_d` helpers from the existing scripts.
+#### The six techniques
+
+Every voice in this repo is one of these, or two of them stacked. Learn the six
+and you can build any instrument you need.
+
+| Technique | Shape | Gives you |
+|---|---|---|
+| **Additive harmonic** | `Σ sin(2πfht) / h**k` | Anything pitched and steady. `k` is the whole timbre: 0.75 is bright and reedy, 1.6 is soft and dark. |
+| **Inharmonic modes** | `Σ aᵢ sin(2πf·rᵢ·t) e^(−dᵢt)` with non-integer `rᵢ` | Struck metal — bells, music boxes, triangles. Real bars ring at 1.00, 2.76, 5.40, 8.93. |
+| **FM** | `sin(2πft + I·sin(2πf·ratio·t)·e^(−at))` | Bells, mallets, electric piano. Cheap and very characterful. |
+| **Karplus-Strong** | noise buffer, averaged pairwise with decay | Plucked strings. The only one that needs a Python loop, so cache it. |
+| **Filter motion** | crossfade two `lowpass` outputs across the note | Pads that open, brass that bites on the attack. |
+| **Noise + filter** | `noise · e^(−dt)` band-passed or high-passed | Every unpitched drum, breath, and air transient. |
+
+Two modifiers worth knowing: **detune** (two copies a fraction of a cent apart —
+chorus, accordions, analog warmth) and **saturation** (`np.tanh(x · drive)` —
+weight without brightness).
+
+For anything with a *moving pitch* — vibrato, a scoop, a drum sweep — integrate
+frequency to phase with `np.cumsum`. See §7; this is not optional.
+
+#### The library — every voice already in the repo
+
+Copy any of these directly. This is the real palette, and it is much larger than
+the generic menu below.
+
+| Voice | Technique | Character | Lives in |
+|---|---|---|---|
+| `pad_voice` | additive `1/h**1.6`, detuned ×3 | soft wash | moody, optimistic |
+| `sweep_pad` | additive + filter motion | pad that opens | morning_forest |
+| `accordion` | additive `1/h**1.15`, detuned, tremolo | reedy, wheezy | music_box_waltz |
+| `organ` | additive drawbar | church, gospel | §3.5 menu (unused) |
+| `harpsichord` | additive `1/h**0.75` + noise quill | bright, plucked, baroque | simple_bach_tune |
+| `continuo` | additive `1/h**1.2`, low-passed | bowed low sustain | simple_bach_tune |
+| `viol` | additive `1/h**1.1` + true vibrato | singing upper line | simple_bach_tune |
+| `low_brass` | additive `1/h**1.05` + sine sub | heavy, dark | avenger |
+| `brass` | additive + pitch scoop + attack filter + air | bright, declamatory | avenger |
+| `horn` | additive `1/h**1.35` + gentle scoop | round, warm | avenger |
+| `music_box` | **inharmonic** modes 1/2.76/5.40/8.93 | struck metal, antique | music_box_waltz |
+| `triangle` | inharmonic, pitched at 2100 Hz | bright ping | music_box_waltz |
+| `bell_lead` | FM strike + sine core | glassy attack, singing tail | morning_forest |
+| `fm_bell` | FM | bell, mallet | §3.5 menu (unused) |
+| `pluck` | Karplus-Strong | guitar, harp, koto | morning_forest |
+| `bass_voice` | sine + 2nd harmonic | plain, clean | moody, optimistic |
+| `bass_voice` | tanh-saturated | round, modern | morning_forest |
+| `waltz_bass` | sine + 2nd + 3rd, low-passed | soft, warm | music_box_waltz |
+| `sub_bass` | saturated sine | deep, modern | §3.5 menu (unused) |
+| `lead_voice` | sine + 3rd + vibrato | flute-ish | moody, optimistic |
+| `breath_lead` | sine + band-passed noise | airy, voice-like | §3.5 menu (unused) |
+
+Nothing stops you inventing a seventh technique. Physical modelling, wavetables,
+granular resynthesis and comb filtering all fit inside the framework — they are
+just numpy.
+
+#### The generic menu
+
+These four are not used by any bundle yet, so they are the quickest way to make a
+new one sound different. They are drop-in replacements for `pad_voice` /
+`lead_voice` / `bass_voice` and assume the §2.7 helpers.
+
 They return **unnormalized** signals — measured peaks range from 0.9 (`sub_bass`)
-to 4.0 (`pluck`) — so balance is set entirely by the `gain` argument at the
-`place()` call. Start a new voice at gain 0.1 and adjust against §5.1.
+to 4.0 (`pluck`) — so balance is set by the `gain` argument at the `place()` call.
+Start a new voice at gain 0.1 and adjust against §5.1.
 
 ```python
-def pluck(freq, dur):                       # Karplus-Strong — guitar/harp/koto
-    n = int(dur*SR); L = max(2, int(SR/freq))
-    buf = rng_d.standard_normal(L); out_ = np.zeros(n)
-    for i in range(n):
-        out_[i] = buf[i % L]
-        buf[i % L] = 0.5*(buf[i % L] + buf[(i+1) % L]) * 0.996
-    return out_ * env(n, 0.001, 0.05, 0.8, dur*0.5)
-
 def fm_bell(freq, dur, ratio=3.5, index=6):  # bell, mallet, electric piano
     n = int(dur*SR); t = np.arange(n)/SR
     mod = np.sin(2*np.pi*freq*ratio*t) * index * np.exp(-t*4)
@@ -677,21 +811,11 @@ def breath_lead(freq, dur):                  # airy flute / voice-like
 def sub_bass(freq, dur, drive=1.6):          # deep, round, modern
     n = int(dur*SR); t = np.arange(n)/SR
     return np.tanh(np.sin(2*np.pi*freq*t) * drive) * env(n, 0.01, 0.2, 0.7, 0.3)
-
-def sweep_pad(freq, dur, f0=400, f1=3000):   # filter opening over the note
-    n = int(dur*SR); t = np.arange(n)/SR
-    sig = sum(np.sin(2*np.pi*freq*h*t)/h**1.4 for h in range(1, 8))
-    cut = np.linspace(f0, f1, n)             # crude but effective: blend two filters
-    lo, hi = lowpass(sig, f0), lowpass(sig, f1)
-    m = (cut - f0) / (f1 - f0)
-    return (lo*(1-m) + hi*m) * env(n, 0.6, 0.5, 0.7, 1.0)
 ```
 
-Also: **arpeggiate** instead of sustaining (same chord, one note per 8th or 16th,
-using `pluck`); **detune amount** (0.4 cents is subtle, 8 cents is a chorused
-wash); **octave doubling**; **tremolo** (`* (0.7 + 0.3*np.sin(2*np.pi*5*t))`);
-**stereo** — every bundle so far is mono, and going stereo (two output buffers, pan
-voices, write shape `(n, 2)`) is a legitimate framework extension.
+Also: **arpeggiate** instead of sustaining; **octave doubling**; **tremolo**
+(`* (0.7 + 0.3*np.sin(2*np.pi*5*t))` — amplitude, so it is safe); **stereo**,
+which no bundle has done yet (two output buffers, pan voices, write shape `(n, 2)`).
 
 ### 3.6 Speed variants
 
