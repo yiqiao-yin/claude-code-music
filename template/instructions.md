@@ -118,7 +118,7 @@ moody bundle deliberately has none — it broods in one place, which is the poin
 | **"You pick"** | I'll choose something that fits the mood and tell you where the event lands. |
 
 Whatever you pick, the timestamp of the event goes into `structure.json` and the
-video reacts to it — see §2.5 and §3.7. A structural event the visualizer ignores
+video reacts to it — see §2.5 and §3.8. A structural event the visualizer ignores
 is a wasted one.
 
 ### 1.2 The ones with defaults — override if you care
@@ -543,7 +543,32 @@ wash); **octave doubling**; **tremolo** (`* (0.7 + 0.3*np.sin(2*np.pi*5*t))`);
 **stereo** — every bundle so far is mono, and going stereo (two output buffers, pan
 voices, write shape `(n, 2)`) is a legitimate framework extension.
 
-### 3.6 Mix and space
+### 3.6 Speed variants
+
+To ship the same piece faster, **re-synthesize at a higher tempo — do not
+post-process the audio.** Scale the tempo up and divide every absolute time
+constant by the same factor: envelope segments, exponential decay rates, reverb
+tap times, the tail and fade. Note durations expressed in beats scale by
+themselves.
+
+```python
+SPEED = float(os.environ.get("<NAME>_SPEED", "1"))
+def T(x): return x / SPEED     # a duration in seconds
+def R(x): return x * SPEED     # an exponential decay rate
+BPM = BASE_BPM * SPEED
+```
+
+`avenger_beginning_song` does this at 4× and 8×. The alternatives are both worse:
+resampling raises the pitch by two octaves per 4×, and phase-vocoder
+time-stretching smears transients, which is fatal for a piece built on attacks.
+
+Skipping the `T()`/`R()` scaling is the trap: a 421 ms reverb tap is a third of a
+bar at 1× and longer than a whole bar at 8×.
+
+Guard the refactor — running at `SPEED = 1` must reproduce the original PCM
+checksum exactly.
+
+### 3.7 Mix and space
 
 Reverb taps set the room. The moody bundle uses long taps (97/151/233/389 ms,
 lowpass 3500) for a cathedral; the optimistic one short taps (61/89/127/211 ms,
@@ -558,7 +583,7 @@ entirely and just add a single 40 ms slapback.
 Also worth varying: drum-to-melodic balance (the `drums * 0.8`), whether drums get
 any reverb at all, fade-out length, and whether the piece fades or ends cold.
 
-### 3.7 Video
+### 3.8 Video
 
 Palette should follow the music, not a template. Set a background gradient, an
 orb base colour, a spectrum-ring colour that *contrasts* with the background

@@ -274,17 +274,66 @@ design. This is a third variant of the §5.2 blind spot: after harmonically rich
 timbres and 5th/7th partials, **swept and inharmonic percussion also puts
 pitch classes into the chroma that nobody played.**
 
-## 8. Run order
+## 8. Speed variants
+
+Two faster renders live alongside the 1× set, driven by `scripts/make_4x.py` and
+`scripts/make_8x.py`:
+
+| | Tempo | Length | Bar |
+|---|---|---|---|
+| 1× | 88 BPM | 91.27 s | 2.73 s |
+| 4× | 352 BPM | 22.82 s | 0.68 s |
+| 8× | 704 BPM | 11.41 s | 0.34 s |
+
+**These are true tempo changes, not playback speed-ups.** The score is
+re-synthesized at the higher tempo with the pitch left exactly where it was
+written. `AVENGER_SPEED` scales the tempo up and divides every absolute time
+constant — envelope segments, exponential decay rates, reverb tap times, the
+fade-out — by the same factor, so the sound keeps its proportions. Without that
+scaling a 421 ms reverb tap would be more than a full bar long at 8× and the
+whole thing would be mud.
+
+The two alternatives were both worse:
+
+- **Resampling** the finished audio 4× or 8× faster raises the pitch by two or
+  three octaves. The B5 melody would land near B7 and the E1 bass would lose all
+  its weight.
+- **Time-stretching** with a phase vocoder preserves pitch but smears transients,
+  and this piece is almost entirely sharp brass and percussion attacks.
+
+Verified: all three renders peak at 0.952 and are diatonic to E minor, and the
+strongest spectral peaks sit at the same frequencies in all three — E2 at
+82.1–82.5 Hz, B2 at 123.2–123.6, E3 at 164.3–165.0, B3 at 246.4–246.8. The sub-Hz
+spread is FFT bin resolution, not pitch drift.
+
+```
+PCM md5, 4x: de965c253b0eff85afd0459add8ed043
+PCM md5, 8x: 973dd281175ca3793aa763feeaca8406
+```
+
+Running the scripts with no `AVENGER_SPEED` set reproduces the 1× assets
+byte-for-byte; this was checked against the recorded PCM checksum after the
+refactor.
+
+## 9. Run order
 
 ```bash
 cd scripts
 python3 01_make_music.py      # -> ../assets/{mid,wav,mp3} and ../structure.json
 python3 02_make_video.py      # -> ../assets/avenger_beginning_song_visualizer.mp4
+
+python3 make_4x.py            # -> the _4x set, about 27 s
+python3 make_8x.py            # -> the _8x set, about 13 s
 ```
 
-About 4 s for the audio and 95 s for the video.
+About 4 s for the 1× audio and 95 s for its video. The speed variants are quicker
+simply because they are shorter.
 
-## 9. Verification results
+> This bundle holds twelve files in `assets/` rather than the usual four — one
+> set per speed. `structure.json`, `structure_4x.json` and `structure_8x.json`
+> sit at the bundle root.
+
+## 10. Verification results
 
 Per [`../instructions.md`](../instructions.md) §5, on the committed assets:
 
@@ -312,7 +361,7 @@ present in nearly every bar in both hands.
   steel to gold at the restatement, and the Cmaj7 peak at 70.9 s is the brightest
   frame in the piece.
 
-## 10. Prompt to regenerate the whole thing from an LLM
+## 11. Prompt to regenerate the whole thing from an LLM
 
 > Write two Python scripts. Script 1 composes a 32-bar piece in E minor at 88 BPM
 > from a two-handed keyboard layout: the left hand plays power chords with no

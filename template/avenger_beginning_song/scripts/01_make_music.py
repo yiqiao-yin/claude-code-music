@@ -20,6 +20,7 @@ restatement rather than at the end of each pass.
 """
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -29,7 +30,29 @@ from midiutil import MIDIFile
 from scipy.io import wavfile
 from scipy.signal import butter, lfilter
 
-BPM = 88
+# Speed variants. AVENGER_SPEED=4 renders the same score four times faster with
+# the pitch untouched: the tempo scales up and every absolute time constant —
+# envelopes, decay rates, reverb taps, the tail — scales down by the same factor,
+# so the sound keeps its proportions instead of turning to mud. This is a true
+# tempo change, not a resample (which would raise the pitch two octaves) and not
+# a time-stretch (which would smear these attacks).
+SPEED = float(os.environ.get("AVENGER_SPEED", "1"))
+SUFFIX = "" if SPEED == 1 else "_%gx" % SPEED
+NAME = "avenger_beginning_song" + SUFFIX
+
+
+def T(x):
+    """A duration in seconds, scaled for the current speed."""
+    return x / SPEED
+
+
+def R(x):
+    """An exponential decay rate, scaled for the current speed."""
+    return x * SPEED
+
+
+BASE_BPM = 88
+BPM = BASE_BPM * SPEED
 BEAT = 60.0 / BPM
 SR = 44100
 BEATS_PER_BAR = 4
@@ -170,7 +193,7 @@ for bar, (lh, rh, mel, label, p) in enumerate(BARS_DATA):
     if bar in SECTION_BARS:
         mid.addNote(3, 9, CYM_NOTE, t, 1.5, 96)
 
-with open(OUT / "avenger_beginning_song.mid", "wb") as f:
+with open(OUT / (NAME + ".mid"), "wb") as f:
     mid.writeFile(f)
 
 
@@ -210,18 +233,18 @@ def brass(freq, dur, bite=1.0):
     sine would modulate phase and bend the whole note, not just its onset."""
     n = int(dur * SR)
     t = np.arange(n) / SR
-    scoop = 1 - 0.035 * np.exp(-t * 55)
+    scoop = 1 - 0.035 * np.exp(-t * R(55))
     ph = 2 * np.pi * np.cumsum(freq * scoop) / SR
     sig = np.zeros(n)
     for h in range(1, 11):
         if freq * h < SR / 2 * 0.9:
             sig += np.sin(h * ph) / h ** 0.9
     sig /= np.max(np.abs(sig))
-    air = rng_d.standard_normal(n) * np.exp(-t * 90) * 0.06 * bite
+    air = rng_d.standard_normal(n) * np.exp(-t * R(90)) * 0.06 * bite
     # the filter opens on the attack, giving the hit its edge
     bright, dark = lowpass(sig, 4200), lowpass(sig, 1500)
-    m = np.exp(-t * 6)
-    return (bright * m + dark * (1 - m) + air) * env(n, 0.035, 0.18, 0.72, 0.45)
+    m = np.exp(-t * R(6))
+    return (bright * m + dark * (1 - m) + air) * env(n, T(0.035), T(0.18), 0.72, T(0.45))
 
 
 def low_brass(freq, dur):
@@ -230,52 +253,55 @@ def low_brass(freq, dur):
     t = np.arange(n) / SR
     sig = sum(np.sin(2 * np.pi * freq * h * t) / h ** 1.05 for h in range(1, 9))
     sig = lowpass(sig, 1900) + 0.55 * np.sin(2 * np.pi * freq * t)
-    return sig * env(n, 0.018, 0.22, 0.78, 0.5)
+    return sig * env(n, T(0.018), T(0.22), 0.78, T(0.5))
 
 
 def horn(freq, dur):
     """Melody doubling: rounder than the brass, fewer harmonics, softer attack."""
     n = int(dur * SR)
     t = np.arange(n) / SR
-    scoop = 1 - 0.02 * np.exp(-t * 40)
+    scoop = 1 - 0.02 * np.exp(-t * R(40))
     ph = 2 * np.pi * np.cumsum(freq * scoop) / SR
     sig = sum(np.sin(h * ph) / h ** 1.35 for h in range(1, 7))
-    return lowpass(sig, 2600) * env(n, 0.06, 0.25, 0.8, 0.5)
+    return lowpass(sig, 2600) * env(n, T(0.06), T(0.25), 0.8, T(0.5))
 
 
-def timpani(freq, dur=1.1):
+def timpani(freq, dur=None):
     """Pitched drum: the fundamental drops a little as the head relaxes."""
+    dur = dur if dur is not None else T(1.1)
     n = int(dur * SR)
     t = np.arange(n) / SR
-    f = freq * (1 + 0.10 * np.exp(-t * 22))
+    f = freq * (1 + 0.10 * np.exp(-t * R(22)))
     ph = 2 * np.pi * np.cumsum(f) / SR
-    body = (np.sin(ph) + 0.4 * np.sin(2.1 * ph)) * np.exp(-t * 4.2)
-    skin = rng_d.standard_normal(n) * np.exp(-t * 60) * 0.25
+    body = (np.sin(ph) + 0.4 * np.sin(2.1 * ph)) * np.exp(-t * R(4.2))
+    skin = rng_d.standard_normal(n) * np.exp(-t * R(60)) * 0.25
     return body + lowpass(skin, 2500)
 
 
-def taiko(dur=1.0):
+def taiko(dur=None):
+    dur = dur if dur is not None else T(1.0)
     n = int(dur * SR)
     t = np.arange(n) / SR
-    f = 95 * np.exp(-t * 14) + 46
-    body = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 5.0)
-    thwack = lowpass(rng_d.standard_normal(n) * np.exp(-t * 45), 900) * 0.5
+    f = 95 * np.exp(-t * R(14)) + 46
+    body = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * R(5.0))
+    thwack = lowpass(rng_d.standard_normal(n) * np.exp(-t * R(45)), 900) * 0.5
     return body + thwack
 
 
-def cymbal(dur=2.2):
+def cymbal(dur=None):
     """A swell rather than a crash: the noise ramps up into the downbeat, so it
     is placed early and lands on the hit."""
+    dur = dur if dur is not None else T(2.2)
     n = int(dur * SR)
     t = np.arange(n) / SR
     b, a = butter(2, 5000 / (SR / 2), btype="high")
     noise = lfilter(b, a, rng_d.standard_normal(n))
     swell = np.clip(t / (dur * 0.45), 0, 1) ** 2
-    decay = np.exp(-np.maximum(t - dur * 0.45, 0) * 2.6)
+    decay = np.exp(-np.maximum(t - dur * 0.45, 0) * R(2.6))
     return noise * swell * decay
 
 
-total_sec = BARS * BEATS_PER_BAR * BEAT + 4
+total_sec = BARS * BEATS_PER_BAR * BEAT + T(4)
 out = np.zeros(int(total_sec * SR))
 drums = np.zeros_like(out)
 NOTE_LOG = []          # (start_sec, dur_sec, midi, track) for the visualizer
@@ -295,20 +321,20 @@ for bar, (lh, rh, mel, label, p) in enumerate(BARS_DATA):
     final = bar == BARS - 1
     lh_sec = (4.6 if final else 3.2) * BEAT
     for n in lh:
-        place(out, low_brass(f_of(n), lh_sec + 0.4), t0, 0.16 if p else 0.14)
+        place(out, low_brass(f_of(n), lh_sec + T(0.4)), t0, 0.16 if p else 0.14)
         NOTE_LOG.append((t0, lh_sec, n, 1))
     for b, notes in rh:
         dur = (4.4 if final else (1.6 if b == 2 else 2.8)) * BEAT
         g = 0.085 if b == 2 else (0.105 if p else 0.095)
         for n in notes:
-            place(out, brass(f_of(n), dur + 0.4, 1.0 if b == 0 else 0.6),
+            place(out, brass(f_of(n), dur + T(0.4), 1.0 if b == 0 else 0.6),
                   t0 + b * BEAT, g)
             NOTE_LOG.append((t0 + b * BEAT, dur, n, 0))
     if mel:
         beats = CODA_MELODY_BEATS[bar - 28] if p == 2 else [0.0] * len(mel)
         for n, mb in zip(mel, beats):
             d = (1.8 if p == 2 else 2.8) * BEAT
-            place(out, horn(f_of(n), d + 0.4), t0 + mb * BEAT, 0.20)
+            place(out, horn(f_of(n), d + T(0.4)), t0 + mb * BEAT, 0.20)
             NOTE_LOG.append((t0 + mb * BEAT, d, n, 2))
 
 for bar, (lh, rh, mel, label, p) in enumerate(BARS_DATA):
@@ -316,9 +342,9 @@ for bar, (lh, rh, mel, label, p) in enumerate(BARS_DATA):
     place(drums, taiko(), t0, 0.60 if p else 0.50)
     place(drums, timpani(f_of(timp_pitch(lh[-1]))), t0, 0.42 if p else 0.36)
     if p and not any(b == 2 for b, _ in rh):
-        place(drums, taiko(0.7), t0 + 2 * BEAT, 0.26)
+        place(drums, taiko(T(0.7)), t0 + 2 * BEAT, 0.26)
     if bar in SECTION_BARS:
-        place(drums, cymbal(), t0 - 2.2 * 0.45, 0.16)
+        place(drums, cymbal(), t0 - T(2.2) * 0.45, 0.16)
 
 
 def reverb(x):
@@ -327,7 +353,7 @@ def reverb(x):
     so successive hits stay separate."""
     y = x.copy()
     for d_ms, g in ((113, 0.34), (179, 0.28), (271, 0.22), (421, 0.16)):
-        d = int(d_ms / 1000 * SR)
+        d = int(T(d_ms / 1000) * SR)
         buf = np.zeros_like(x)
         buf[d:] = x[:-d]
         y += lowpass(buf, 3200) * g
@@ -336,19 +362,20 @@ def reverb(x):
 
 out = reverb(out) + drums * 0.8
 out /= np.max(np.abs(out)) * 1.05
-fade = int(3 * SR)
+fade = int(T(3) * SR)
 out[-fade:] *= np.linspace(1, 0, fade)
 
-wav_path = OUT / "avenger_beginning_song.wav"
-mp3_path = OUT / "avenger_beginning_song.mp3"
+wav_path = OUT / (NAME + ".wav")
+mp3_path = OUT / (NAME + ".mp3")
 wavfile.write(wav_path, SR, (out * 32767).astype(np.int16))
 
 subprocess.run([ffmpeg_exe(), "-y", "-loglevel", "error",
                 "-i", str(wav_path), "-b:a", "192k", str(mp3_path)], check=True)
 
 bar_sec = BEATS_PER_BAR * BEAT
-(OUT.parent / "structure.json").write_text(json.dumps({
+(OUT.parent / ("structure%s.json" % SUFFIX)).write_text(json.dumps({
     "bpm": BPM,
+    "speed": SPEED,
     "bars": BARS,
     "beats_per_bar": BEATS_PER_BAR,
     "duration_sec": total_sec,
@@ -360,8 +387,9 @@ bar_sec = BEATS_PER_BAR * BEAT
     "peak_sec": PEAK_BAR * bar_sec,
     "modulation_sec": None,
     "notes": [[round(s, 4), round(d, 4), n, tr] for s, d, n, tr in sorted(NOTE_LOG)],
-    "title": "avenger beginning song  |  E minor, 88 BPM",
+    "title": "avenger beginning song%s  |  E minor, %g BPM" % (
+        "" if SPEED == 1 else "  (%gx)" % SPEED, BPM),
 }, indent=2) + "\n")
 
-print(f"done: {total_sec:.2f}s, {BARS} bars, {len(NOTE_LOG)} notes, "
-      f"peak at {PEAK_BAR * bar_sec:.1f}s")
+print(f"done [{NAME}]: {total_sec:.2f}s at {BPM:g} BPM, {BARS} bars, "
+      f"{len(NOTE_LOG)} notes, peak at {PEAK_BAR * bar_sec:.1f}s")

@@ -13,6 +13,7 @@ What's specific to this one:
 """
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -24,6 +25,21 @@ from scipy.io import wavfile
 OUT = Path(__file__).resolve().parent.parent / "assets"
 W, H, FPS = 1280, 720, 24
 
+# Matches AVENGER_SPEED in script 01. On-screen motion scales with the music, so
+# a 4x render genuinely reads as sped up rather than as a fast track under a
+# normal-speed picture.
+SPEED = float(os.environ.get("AVENGER_SPEED", "1"))
+SUFFIX = "" if SPEED == 1 else "_%gx" % SPEED
+NAME = "avenger_beginning_song" + SUFFIX
+
+
+def T(x):
+    return x / SPEED
+
+
+def R(x):
+    return x * SPEED
+
 
 def ffmpeg_exe():
     exe = shutil.which("ffmpeg")
@@ -33,12 +49,12 @@ def ffmpeg_exe():
     return get_ffmpeg_exe()
 
 
-SR, audio = wavfile.read(OUT / "avenger_beginning_song.wav")
+SR, audio = wavfile.read(OUT / (NAME + ".wav"))
 audio = audio.astype(np.float32) / 32767
 DUR = len(audio) / SR
 N = int(np.ceil(DUR * FPS))
 
-struct = json.loads((OUT.parent / "structure.json").read_text())
+struct = json.loads((OUT.parent / ("structure%s.json" % SUFFIX)).read_text())
 SEC_STARTS = struct["section_starts_sec"]
 SEC_LABELS = struct["section_labels"]
 BAR_SEC = struct["bar_sec"]
@@ -47,7 +63,7 @@ CHORDS = struct["chords"]
 NOTES = struct["notes"]
 PEAK = struct["peak_sec"]
 TITLE = struct["title"]
-print(f"duration {DUR:.2f}s -> {N} frames, {BARS} bars, {len(NOTES)} notes")
+print(f"[{NAME}] duration {DUR:.2f}s -> {N} frames, {BARS} bars, {len(NOTES)} notes")
 
 FONT_SEC = ImageFont.load_default(size=30)
 FONT_CH = ImageFont.load_default(size=17)
@@ -94,11 +110,11 @@ bar_idx = np.clip((t_all / BAR_SEC).astype(int), 0, BARS - 1)
 sec_idx = np.searchsorted(SEC_STARTS, t_all, side="right") - 1
 bloom = np.zeros(N)
 for start in SEC_STARTS[1:]:
-    bloom = np.maximum(bloom, np.where(t_all >= start, np.exp(-(t_all - start) * 1.5), 0.0))
+    bloom = np.maximum(bloom, np.where(t_all >= start, np.exp(-(t_all - start) * R(1.5)), 0.0))
 # the restatement is heavier: everything warms from the halfway point
-weight = np.clip((t_all - SEC_STARTS[3]) / 4.0, 0, 1)
-peak_glow = np.where(np.abs(t_all - PEAK) < 3.0,
-                     np.exp(-np.abs(t_all - PEAK) * 1.1), 0.0)
+weight = np.clip((t_all - SEC_STARTS[3]) / T(4.0), 0, 1)
+peak_glow = np.where(np.abs(t_all - PEAK) < T(3.0),
+                     np.exp(-np.abs(t_all - PEAK) * R(1.1)), 0.0)
 
 # background: cold steel, darkest at the top
 yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
@@ -116,7 +132,7 @@ pph = rng.uniform(0, 2 * np.pi, P)
 ROLL_TOP, ROLL_BOT = 452, 598
 ROLL_X0, ROLL_X1 = 90, W - 90
 PLAYHEAD = 470                 # x of "now"; most of the band shows what's coming
-WINDOW_BACK, WINDOW_FWD = 2.0, 6.0
+WINDOW_BACK, WINDOW_FWD = T(2.0), T(6.0)
 PITCH_LO, PITCH_HI = 24, 90
 TRACK_COL = {0: (255, 196, 96), 1: (96, 150, 232), 2: (250, 246, 232)}
 
@@ -132,10 +148,10 @@ note_starts = np.array([n[0] for n in NOTES])
 ff = subprocess.Popen([
     ffmpeg_exe(), "-y", "-loglevel", "error",
     "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
-    "-i", str(OUT / "avenger_beginning_song.wav"),
+    "-i", str(OUT / (NAME + ".wav")),
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-preset", "medium",
     "-c:a", "aac", "-b:a", "192k", "-shortest",
-    str(OUT / "avenger_beginning_song_visualizer.mp4"),
+    str(OUT / (NAME + "_visualizer.mp4")),
 ], stdin=subprocess.PIPE)
 
 cx, cy = W / 2, H * 0.31
@@ -174,7 +190,7 @@ for i in range(N):
 
     # spectrum ring
     for b in range(NB):
-        ang = -np.pi / 2 + 2 * np.pi * b / NB + t * 0.03
+        ang = -np.pi / 2 + 2 * np.pi * b / NB + t * R(0.03)
         r0 = r + 26
         r1 = r0 + 18 + 96 * spec[i, b]
         col = (int(120 + 110 * Wt), int(158 + 52 * Wt), int(228 - 88 * Wt),
@@ -183,9 +199,9 @@ for i in range(N):
                 cx + r1 * np.cos(ang), cy + r1 * np.sin(ang)], fill=col, width=4)
 
     # embers
-    px[:] = (px + 0.30 * pz * np.sin(pph + t * 0.3)) % W
-    py[:] = (py - 0.42 * pz) % H
-    tw = 0.5 + 0.5 * np.sin(t * 1.6 + pph)
+    px[:] = (px + R(0.30) * pz * np.sin(pph + t * R(0.3))) % W
+    py[:] = (py - R(0.42) * pz) % H
+    tw = 0.5 + 0.5 * np.sin(t * R(1.6) + pph)
     for j in range(P):
         s = 1.0 + 2.1 * pz[j]
         a = int(min(255, 28 + 120 * tw[j] * pz[j] + 50 * B))
@@ -194,7 +210,7 @@ for i in range(N):
 
     # --- the score, scrolling ---
     px_per_sec = (ROLL_X1 - PLAYHEAD) / WINDOW_FWD
-    lo, hi = np.searchsorted(note_starts, t - WINDOW_BACK - 4), \
+    lo, hi = np.searchsorted(note_starts, t - WINDOW_BACK - T(4)), \
              np.searchsorted(note_starts, t + WINDOW_FWD)
     for ns, nd, nm, tr in NOTES[lo:hi]:
         x0 = PLAYHEAD + (ns - t) * px_per_sec
@@ -220,7 +236,7 @@ for i in range(N):
         ys = H - 78 + seg * 38
         d.line(list(zip(xs[::8], ys[::8])), fill=(170, 196, 236, 120), width=2)
 
-    fade = min(1, t / 3, (DUR - t) / 3)
+    fade = min(1, t / T(3), (DUR - t) / T(3))
     d.text((80, 46), SEC_LABELS[si], font=FONT_SEC, fill=(238, 242, 252, int(235 * fade)))
     d.text((82, 88), "%s   ·   bar %d / %d" % (CHORDS[bi].strip(), bi + 1, BARS),
            font=FONT_CH, fill=(168, 190, 226, int(180 * fade)))

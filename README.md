@@ -88,6 +88,11 @@ The visualizer draws a scrolling piano roll of the actual score with the two han
 in different colours, over a palette that warms from steel to gold at the
 restatement.
 
+It also ships **4× and 8× renders** (`make_4x.py`, `make_8x.py`) — 22.8 s and
+11.4 s. These are true tempo changes at 352 and 704 BPM, re-synthesized with the
+pitch untouched, not playback speed-ups: resampling would have raised everything
+two or three octaves, and time-stretching would have smeared the brass attacks.
+
 ## Making a new one
 
 Point Claude Code at [`template/instructions.md`](template/instructions.md) and
